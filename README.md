@@ -1,3 +1,5 @@
+<!-- mcp-name: io.github.scrape-badger/scrapebadger -->
+
 <p align="center">
   <img src="https://scrapebadger.com/logo-dark.png" alt="ScrapeBadger" width="400">
 </p>

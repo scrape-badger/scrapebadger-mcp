@@ -1,61 +1,29 @@
 {
-  "$schema": "https://registry.modelcontextprotocol.io/schemas/server.json",
-  "name": "scrapebadger",
-  "displayName": "ScrapeBadger",
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.scrape-badger/scrapebadger",
+  "title": "ScrapeBadger",
   "description": "Twitter/X scraping API for AI agents. Get user profiles, search tweets, access trends, lists, communities, and more.",
-  "homepage": "https://scrapebadger.com",
-  "repository": "https://github.com/scrape-badger/scrapebadger-mcp",
-  "license": "MIT",
-  "author": {
-    "name": "ScrapeBadger",
-    "email": "support@scrapebadger.com",
-    "url": "https://scrapebadger.com"
+  "repository": {
+    "url": "https://github.com/scrape-badger/scrapebadger-mcp",
+    "source": "github"
   },
-  "categories": [
-    "data",
-    "social-media",
-    "scraping",
-    "twitter"
-  ],
-  "tags": [
-    "twitter",
-    "x",
-    "social-media",
-    "scraping",
-    "api",
-    "tweets",
-    "users",
-    "trends",
-    "followers",
-    "following",
-    "lists",
-    "communities"
-  ],
-  "distribution": {
-    "type": "pypi",
-    "package": "scrapebadger-mcp"
-  },
-  "runtime": {
-    "type": "python",
-    "minVersion": "3.10"
-  },
-  "install": {
-    "instructions": "pip install scrapebadger-mcp",
-    "command": {
-      "command": "uvx",
-      "args": ["scrapebadger-mcp"]
-    },
-    "env": [
-      {
-        "name": "SCRAPEBADGER_API_KEY",
-        "description": "Your ScrapeBadger API key from scrapebadger.com",
-        "required": true
-      }
-    ]
-  },
-  "capabilities": {
-    "tools": true,
-    "resources": false,
-    "prompts": false
-  }
+  "version": "0.1.1",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "scrapebadger-mcp",
+      "version": "0.1.1",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "SCRAPEBADGER_API_KEY",
+          "description": "Your ScrapeBadger API key from scrapebadger.com",
+          "isRequired": true,
+          "isSecret": true
+        }
+      ]
+    }
+  ]
 }
