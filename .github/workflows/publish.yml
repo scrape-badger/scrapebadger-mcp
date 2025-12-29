@@ -3,13 +3,11 @@ name: Publish to PyPI
 on:
   release:
     types: [published]
+  workflow_dispatch:  # Allow manual trigger
 
 jobs:
   publish:
     runs-on: ubuntu-latest
-    environment: pypi
-    permissions:
-      id-token: write  # Required for trusted publishing
 
     steps:
       - uses: actions/checkout@v4
@@ -26,6 +24,6 @@ jobs:
         run: uv build
 
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        # Uses trusted publishing - no API token needed
-        # Configure at: https://pypi.org/manage/project/scrapebadger-mcp/settings/publishing/
+        env:
+          UV_PUBLISH_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        run: uv publish
