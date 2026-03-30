@@ -141,6 +141,10 @@ Once configured, simply ask your AI to fetch Twitter data:
 
 ---
 
+## Hosted deployment
+
+A hosted deployment is available on [Fronteir AI](https://fronteir.ai/mcp/scrape-badger-scrapebadger-mcp).
+
 ## Available Tools
 
 The MCP server provides 17 tools organized into categories:
