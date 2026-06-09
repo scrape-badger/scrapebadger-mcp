@@ -16,7 +16,6 @@ from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import TextContent, Tool
 from pydantic import BaseModel, Field
-
 from scrapebadger import ScrapeBadger, ScrapeBadgerError
 
 # Initialize MCP server
