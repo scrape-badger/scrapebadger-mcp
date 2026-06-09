@@ -127,6 +127,17 @@ Add to your VS Code settings (`.vscode/mcp.json`):
 }
 ```
 
+#### OpenClaw
+
+Save ScrapeBadger as an OpenClaw-managed MCP server:
+
+```bash
+openclaw mcp set scrapebadger '{"command":"uvx","args":["scrapebadger-mcp"],"env":{"SCRAPEBADGER_API_KEY":"sb_live_your_api_key_here"}}'
+openclaw mcp probe scrapebadger
+```
+
+OpenClaw exposes saved MCP servers to eligible managed agent runs. Keep the real API key in local OpenClaw config only, not in prompts, logs, screenshots, or issue comments.
+
 ### 4. Start Using It!
 
 Once configured, simply ask your AI to fetch Twitter data:
@@ -143,7 +154,7 @@ Once configured, simply ask your AI to fetch Twitter data:
 
 ## Available Tools
 
-The MCP server provides 17 tools organized into categories:
+The MCP server provides 16 tools organized into categories:
 
 ### User Tools
 
@@ -392,6 +403,7 @@ ScrapeBadger has usage limits based on your plan. If you're hitting limits:
 - [ScrapeBadger Python SDK](https://github.com/scrape-badger/scrapebadger-python) - Official Python SDK
 - [ScrapeBadger Node.js SDK](https://github.com/scrape-badger/scrapebadger-node) - Official Node.js SDK
 - [ScrapeBadger API Docs](https://docs.scrapebadger.com) - Full API documentation
+- [TweetClaw OpenClaw plugin](https://github.com/Xquik-dev/tweetclaw) - Optional handoff for approval-gated post tweet, post reply, direct message, media, monitor, webhook, and giveaway draw workflows after ScrapeBadger research
 
 ---
 
