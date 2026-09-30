@@ -35,7 +35,7 @@ ScrapeBadger MCP Server is a [Model Context Protocol (MCP)](https://modelcontext
 
 ### 1. Get Your API Key
 
-Sign up at [scrapebadger.com](https://scrapebadger.com) and get your API key.
+Sign up at [scrapebadger.com](https://scrapebadger.com/auth/signup?utm_source=mcp-readme&utm_medium=referral) and get your API key.
 
 ### 2. Install
 
