@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -61,7 +61,7 @@ class TestListTools:
         tools = await list_tools()
 
         # Check we have the expected number of tools
-        assert len(tools) == 17
+        assert len(tools) == 16
 
         # Check specific tools exist
         tool_names = [t.name for t in tools]

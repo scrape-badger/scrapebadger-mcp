@@ -16,7 +16,6 @@ from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import TextContent, Tool
 from pydantic import BaseModel, Field
-
 from scrapebadger import ScrapeBadger, ScrapeBadgerError
 
 # Initialize MCP server
@@ -48,7 +47,8 @@ async def _get_client() -> ScrapeBadger:
 def _serialize_model(obj: Any) -> dict[str, Any]:
     """Serialize a Pydantic model or dict to JSON-compatible dict."""
     if hasattr(obj, "model_dump"):
-        return obj.model_dump(mode="json")
+        dumped: dict[str, Any] = obj.model_dump(mode="json")
+        return dumped
     if isinstance(obj, dict):
         return obj
     return {"data": str(obj)}
@@ -124,9 +124,7 @@ class GetTrendsArgs(BaseModel):
 class GetPlaceTrendsArgs(BaseModel):
     """Arguments for getting place trends."""
 
-    woeid: int = Field(
-        description="Where On Earth ID (e.g., 23424977 for US, 44418 for London)"
-    )
+    woeid: int = Field(description="Where On Earth ID (e.g., 23424977 for US, 44418 for London)")
 
 
 class SearchPlacesArgs(BaseModel):
@@ -172,7 +170,7 @@ class SearchCommunitiesArgs(BaseModel):
 # =============================================================================
 
 
-@server.list_tools()
+@server.list_tools()  # type: ignore[no-untyped-call, untyped-decorator]
 async def list_tools() -> list[Tool]:
     """List all available tools."""
     return [
@@ -313,12 +311,13 @@ async def list_tools() -> list[Tool]:
     ]
 
 
-@server.call_tool()
+@server.call_tool()  # type: ignore[untyped-decorator]
 async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
     """Handle tool calls."""
     try:
         client = await _get_client()
         result: Any = None
+        args: Any  # each branch validates into its own args model
 
         # User tools
         if name == "get_twitter_user_profile":
@@ -382,15 +381,15 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
         # Trend tools
         elif name == "get_twitter_trends":
             args = GetTrendsArgs(**arguments)
-            if args.category:
-                from scrapebadger.twitter import TrendCategory
+            from scrapebadger.twitter import TrendCategory
 
-                category_map = {
-                    "news": TrendCategory.NEWS,
-                    "sports": TrendCategory.SPORTS,
-                    "entertainment": TrendCategory.ENTERTAINMENT,
-                }
-                category = category_map.get(args.category.lower())
+            category_map = {
+                "news": TrendCategory.NEWS,
+                "sports": TrendCategory.SPORTS,
+                "entertainment": TrendCategory.ENTERTAINMENT,
+            }
+            category = category_map.get(args.category.lower()) if args.category else None
+            if category:
                 trends_response = await client.twitter.trends.get_trends(category=category)
             else:
                 trends_response = await client.twitter.trends.get_trends()
