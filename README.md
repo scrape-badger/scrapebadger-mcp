@@ -14,14 +14,14 @@
 </p>
 
 <p align="center">
-  <strong>Give your AI agents access to Twitter/X data via the Model Context Protocol</strong>
+  <strong>Give your AI agents access to Twitter/X data and Google Search via the Model Context Protocol</strong>
 </p>
 
 ---
 
 ## What is this?
 
-ScrapeBadger MCP Server is a [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server that enables AI assistants like **Claude**, **ChatGPT**, **Cursor**, **Windsurf**, and other MCP-compatible clients to access Twitter/X data through the [ScrapeBadger API](https://scrapebadger.com).
+ScrapeBadger MCP Server is a [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server that enables AI assistants like **Claude**, **ChatGPT**, **Cursor**, **Windsurf**, and other MCP-compatible clients to access Twitter/X data and Google Search results through the [ScrapeBadger API](https://scrapebadger.com).
 
 **With this MCP server, your AI can:**
 
@@ -30,6 +30,7 @@ ScrapeBadger MCP Server is a [Model Context Protocol (MCP)](https://modelcontext
 - Access trending topics globally or by location
 - Explore Twitter lists and communities
 - Search for places and geolocated content
+- Search Google and read the structured results page, including People Also Ask answers
 
 ## Quick Start
 
@@ -139,6 +140,8 @@ Once configured, simply ask your AI to fetch Twitter data:
 
 > "Find the top 10 Python developers on Twitter"
 
+> "Search Google for 'are noise cancelling headphones worth it' and answer the People Also Ask questions"
+
 ---
 
 ## Available Tools
@@ -190,6 +193,22 @@ The MCP server provides 17 tools organized into categories:
 |------|-------------|
 | `get_twitter_community_detail` | Get details about a Twitter community |
 | `search_twitter_communities` | Search for communities |
+
+### Google Tools
+
+| Tool | Description |
+|------|-------------|
+| `search_google` | Search Google (`/v1/google/search`): organic results, ads, knowledge graph, AI Overview, People Also Ask, shopping results, perspectives, discussions and forums, short videos, related searches |
+
+`search_google` takes `q`, `gl`, `hl`, `start`, `location`, `ai_overview` and
+`expand_related_questions`. Google loads a People Also Ask answer only when the
+question is clicked, so by default `related_questions` holds the questions
+without answers. `expand_related_questions: true` opens every question the page
+shows (usually four) and a number `N` opens the first N; each answered question
+then carries `text_blocks` and `references`. Each answered question costs one
+more search (credits = 20 x (1 + answered)), and a question whose answer does
+not come back is not billed. See the
+[Google web search docs](https://docs.scrapebadger.com/api-reference/google/google-search/google-web-search).
 
 ---
 

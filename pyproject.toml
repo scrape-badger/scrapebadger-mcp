@@ -1,7 +1,7 @@
 [project]
 name = "scrapebadger-mcp"
-version = "0.1.2"
-description = "MCP server for ScrapeBadger - Twitter/X scraping API for AI agents"
+version = "0.2.0"
+description = "MCP server for ScrapeBadger - Twitter/X scraping and Google Search API for AI agents"
 readme = "README.md"
 license = { text = "MIT" }
 authors = [{ name = "ScrapeBadger", email = "support@scrapebadger.com" }]
@@ -11,6 +11,8 @@ keywords = [
     "ai",
     "llm",
     "twitter",
+    "google",
+    "serp",
     "x",
     "scraping",
     "api",
@@ -35,7 +37,7 @@ classifiers = [
 requires-python = ">=3.10"
 dependencies = [
     "mcp>=1.0.0",
-    "scrapebadger>=0.10.0",
+    "scrapebadger>=0.70.0",
     "pydantic>=2.0.0",
 ]
 

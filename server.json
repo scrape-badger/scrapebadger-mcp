@@ -2,17 +2,17 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.scrape-badger/scrapebadger",
   "title": "ScrapeBadger",
-  "description": "Twitter/X scraping for AI agents: profiles, tweets, followers, trends, lists and communities.",
+  "description": "Twitter/X scraping and Google Search for AI agents: profiles, tweets, trends, lists, SERPs.",
   "repository": {
     "url": "https://github.com/scrape-badger/scrapebadger-mcp",
     "source": "github"
   },
-  "version": "0.1.2",
+  "version": "0.2.0",
   "packages": [
     {
       "registryType": "pypi",
       "identifier": "scrapebadger-mcp",
-      "version": "0.1.2",
+      "version": "0.2.0",
       "transport": {
         "type": "stdio"
       },
