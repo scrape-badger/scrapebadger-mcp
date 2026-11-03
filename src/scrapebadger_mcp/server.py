@@ -1,7 +1,7 @@
 """ScrapeBadger MCP Server.
 
 This module implements the Model Context Protocol (MCP) server for ScrapeBadger,
-providing AI agents with access to Twitter/X scraping capabilities.
+providing AI agents with access to Twitter/X scraping and Google Search.
 """
 
 from __future__ import annotations
@@ -10,13 +10,12 @@ import asyncio
 import json
 import os
 import sys
-from typing import Any
+from typing import Annotated, Any
 
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import TextContent, Tool
 from pydantic import BaseModel, Field
-
 from scrapebadger import ScrapeBadger, ScrapeBadgerError
 
 # Initialize MCP server
@@ -48,7 +47,8 @@ async def _get_client() -> ScrapeBadger:
 def _serialize_model(obj: Any) -> dict[str, Any]:
     """Serialize a Pydantic model or dict to JSON-compatible dict."""
     if hasattr(obj, "model_dump"):
-        return obj.model_dump(mode="json")
+        dumped: dict[str, Any] = obj.model_dump(mode="json")
+        return dumped
     if isinstance(obj, dict):
         return obj
     return {"data": str(obj)}
@@ -124,9 +124,7 @@ class GetTrendsArgs(BaseModel):
 class GetPlaceTrendsArgs(BaseModel):
     """Arguments for getting place trends."""
 
-    woeid: int = Field(
-        description="Where On Earth ID (e.g., 23424977 for US, 44418 for London)"
-    )
+    woeid: int = Field(description="Where On Earth ID (e.g., 23424977 for US, 44418 for London)")
 
 
 class SearchPlacesArgs(BaseModel):
@@ -167,12 +165,41 @@ class SearchCommunitiesArgs(BaseModel):
     query: str = Field(description="Search query for communities")
 
 
+class SearchGoogleArgs(BaseModel):
+    """Arguments for a Google web search."""
+
+    q: str = Field(description="Search query (supports Google operators like site:, intitle:)")
+    gl: str = Field(default="us", description="Country code (e.g. us, gb, de)")
+    hl: str = Field(default="en", description="Language code (e.g. en, fr, de)")
+    start: int = Field(default=0, ge=0, description="Result offset for paging (0, 10, 20, ...)")
+    location: str | None = Field(
+        default=None, description="City-level geo-targeting (e.g. 'New York, USA')"
+    )
+    ai_overview: bool = Field(
+        default=False,
+        description=(
+            "Also fetch an AI Overview that Google loads after the page, and resolve "
+            "its source links."
+        ),
+    )
+    expand_related_questions: bool | Annotated[int, Field(ge=0, le=99)] | None = Field(
+        default=None,
+        description=(
+            "Open the People Also Ask questions and return their answers: true opens "
+            "every question the page shows (usually four), a number N opens the first N. "
+            "Each answered question gets text_blocks and references. Each answered "
+            "question costs one more search (credits = 20 x (1 + answered)); a question "
+            "whose answer does not come back is not billed. Adds about a second per question."
+        ),
+    )
+
+
 # =============================================================================
 # Tool Handlers
 # =============================================================================
 
 
-@server.list_tools()
+@server.list_tools()  # type: ignore[no-untyped-call, untyped-decorator]
 async def list_tools() -> list[Tool]:
     """List all available tools."""
     return [
@@ -310,15 +337,27 @@ async def list_tools() -> list[Tool]:
             ),
             inputSchema=SearchCommunitiesArgs.model_json_schema(),
         ),
+        # Google tools
+        Tool(
+            name="search_google",
+            description=(
+                "Search Google and get the structured results page: organic results, ads, "
+                "knowledge graph, AI Overview, People Also Ask, shopping results, "
+                "perspectives, discussions and forums, short videos and related searches. "
+                "Set expand_related_questions to also get the People Also Ask answers."
+            ),
+            inputSchema=SearchGoogleArgs.model_json_schema(),
+        ),
     ]
 
 
-@server.call_tool()
+@server.call_tool()  # type: ignore[untyped-decorator]
 async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
     """Handle tool calls."""
     try:
         client = await _get_client()
         result: Any = None
+        args: Any  # each branch validates into its own args model
 
         # User tools
         if name == "get_twitter_user_profile":
@@ -382,15 +421,15 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
         # Trend tools
         elif name == "get_twitter_trends":
             args = GetTrendsArgs(**arguments)
-            if args.category:
-                from scrapebadger.twitter import TrendCategory
+            from scrapebadger.twitter import TrendCategory
 
-                category_map = {
-                    "news": TrendCategory.NEWS,
-                    "sports": TrendCategory.SPORTS,
-                    "entertainment": TrendCategory.ENTERTAINMENT,
-                }
-                category = category_map.get(args.category.lower())
+            category_map = {
+                "news": TrendCategory.NEWS,
+                "sports": TrendCategory.SPORTS,
+                "entertainment": TrendCategory.ENTERTAINMENT,
+            }
+            category = category_map.get(args.category.lower()) if args.category else None
+            if category:
                 trends_response = await client.twitter.trends.get_trends(category=category)
             else:
                 trends_response = await client.twitter.trends.get_trends()
@@ -448,6 +487,19 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
                 "communities": [_serialize_model(c) for c in communities_response.data],
                 "count": len(communities_response.data),
             }
+
+        # Google tools
+        elif name == "search_google":
+            args = SearchGoogleArgs(**arguments)
+            result = await client.google.search.search(
+                args.q,
+                gl=args.gl,
+                hl=args.hl,
+                start=args.start,
+                location=args.location,
+                ai_overview=args.ai_overview,
+                expand_related_questions=args.expand_related_questions,
+            )
 
         else:
             return [

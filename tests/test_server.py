@@ -2,15 +2,19 @@
 
 from __future__ import annotations
 
+import json
 import os
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from pydantic import ValidationError
 
 from scrapebadger_mcp.server import (
     GetUserProfileArgs,
+    SearchGoogleArgs,
     SearchTweetsArgs,
     _get_api_key,
+    call_tool,
     list_tools,
 )
 
@@ -51,6 +55,23 @@ class TestToolArgs:
         args = SearchTweetsArgs(query="python", max_results=50)
         assert args.max_results == 50
 
+    def test_search_google_args_defaults(self) -> None:
+        args = SearchGoogleArgs(q="python")
+        assert (args.gl, args.hl, args.start) == ("us", "en", 0)
+        assert args.ai_overview is False
+        assert args.expand_related_questions is None
+
+    @pytest.mark.parametrize("value", [True, False, 0, 2, 99])
+    def test_search_google_expand_related_questions_accepts(self, value: bool | int) -> None:
+        args = SearchGoogleArgs(q="python", expand_related_questions=value)
+        assert args.expand_related_questions == value
+        assert type(args.expand_related_questions) is type(value)
+
+    @pytest.mark.parametrize("value", [-1, 100])
+    def test_search_google_expand_related_questions_range(self, value: int) -> None:
+        with pytest.raises(ValidationError):
+            SearchGoogleArgs(q="python", expand_related_questions=value)
+
 
 class TestListTools:
     """Tests for tool listing."""
@@ -69,6 +90,14 @@ class TestListTools:
         assert "search_twitter_tweets" in tool_names
         assert "get_twitter_trends" in tool_names
         assert "get_twitter_followers" in tool_names
+        assert "search_google" in tool_names
+
+    @pytest.mark.asyncio
+    async def test_search_google_schema_has_expand_related_questions(self) -> None:
+        tools = {t.name: t for t in await list_tools()}
+        props = tools["search_google"].inputSchema["properties"]
+        assert "expand_related_questions" in props
+        assert tools["search_google"].inputSchema["required"] == ["q"]
 
     @pytest.mark.asyncio
     async def test_list_tools_have_descriptions(self) -> None:
@@ -87,3 +116,29 @@ class TestListTools:
         for tool in tools:
             assert tool.inputSchema
             assert "properties" in tool.inputSchema or "type" in tool.inputSchema
+
+
+class TestCallTool:
+    """Tests for tool dispatch."""
+
+    @pytest.mark.asyncio
+    async def test_search_google_forwards_expand_related_questions(self) -> None:
+        client = MagicMock()
+        client.google.search.search = AsyncMock(
+            return_value={"related_questions": [{"question": "q?", "text_blocks": []}]}
+        )
+        with patch("scrapebadger_mcp.server._get_client", AsyncMock(return_value=client)):
+            out = await call_tool(
+                "search_google",
+                {"q": "noise cancelling headphones", "expand_related_questions": 2},
+            )
+        client.google.search.search.assert_awaited_once_with(
+            "noise cancelling headphones",
+            gl="us",
+            hl="en",
+            start=0,
+            location=None,
+            ai_overview=False,
+            expand_related_questions=2,
+        )
+        assert json.loads(out[0].text)["related_questions"][0]["question"] == "q?"
