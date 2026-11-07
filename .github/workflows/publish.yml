@@ -24,11 +24,8 @@ jobs:
       - name: Build package
         run: uv build
 
+      - name: Sign distribution attestations
+        run: uvx --from pypi-attestations pypi-attestations sign dist/*
+
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@v1.14.3
-        # Configure trusted publishing at:
-        # https://pypi.org/manage/account/publishing/
-        # Owner: scrape-badger
-        # Repository: scrapebadger-mcp
-        # Workflow: publish.yml
-        # Environment: pypi
+        run: uv publish --trusted-publishing always
