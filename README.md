@@ -14,14 +14,14 @@
 </p>
 
 <p align="center">
-  <strong>Give your AI agents access to Twitter/X data and Google Search via the Model Context Protocol</strong>
+  <strong>Give your AI agents access to Twitter/X data, Google Search, Yelp businesses, GitHub repositories and AutoScout24 listings via the Model Context Protocol</strong>
 </p>
 
 ---
 
 ## What is this?
 
-ScrapeBadger MCP Server is a [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server that enables AI assistants like **Claude**, **ChatGPT**, **Cursor**, **Windsurf**, and other MCP-compatible clients to access Twitter/X data and Google Search results through the [ScrapeBadger API](https://scrapebadger.com).
+ScrapeBadger MCP Server is a [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server that enables AI assistants like **Claude**, **ChatGPT**, **Cursor**, **Windsurf**, and other MCP-compatible clients to access Twitter/X data, Google Search results, Yelp business search, GitHub repository detail and AutoScout24 listing detail through the [ScrapeBadger API](https://scrapebadger.com).
 
 **With this MCP server, your AI can:**
 
@@ -31,6 +31,9 @@ ScrapeBadger MCP Server is a [Model Context Protocol (MCP)](https://modelcontext
 - Explore Twitter lists and communities
 - Search for places and geolocated content
 - Search Google and read the structured results page, including People Also Ask answers
+- Search Yelp businesses in the US and Canada in Yelp's own order, with ads kept separate
+- Read a public GitHub repository: README, root files, latest commit and statistics
+- Read a full AutoScout24 vehicle listing: specifications, equipment, photos and seller data
 
 ## Quick Start
 
@@ -209,6 +212,24 @@ then carries `text_blocks` and `references`. Each answered question costs one
 more search (credits = 20 x (1 + answered)), and a question whose answer does
 not come back is not billed. See the
 [Google web search docs](https://docs.scrapebadger.com/api-reference/google/google-search/google-web-search).
+
+### Yelp, GitHub repository and AutoScout24 listing tools
+
+| Tool | Description |
+|------|-------------|
+| `yelp_search_businesses` | Yelp business search (`/v1/yelp/search`) for a `location` in the US (`market=us`, default) or Canada (`ca`): rating, review count, categories, price, address and opening hours, ads in a separate `ads` list. Filters: `query`, `category`, `sort_by`, `price`, `features`. Ten per page, `page` 1-11. 15 credits per page with results; empty searches, errors and cache hits are free |
+| `yelp_list_markets` | The Yelp sites this API searches (`/v1/yelp/markets`). Free |
+| `github_get_repository` | A public repository on its default branch (`/v1/github/repositories/{owner}/{repo}`): statistics, topics, license, native README, root files and latest commit. Pass `owner` and `repo` separately, not a URL. 10 credits |
+| `autoscout24_get_listing` | Full AutoScout24 listing detail (`/v1/autoscout24/listing`): native specifications, equipment, photos, prices and public seller data. Pass exactly one `url` or `listing_id` from a vehicle search; `market` is inferred from the URL, otherwise `de`. 10 credits; removed listings are unbilled 404s |
+
+These tools return the API response unchanged, so every native field stays available.
+See the [Yelp](https://docs.scrapebadger.com/yelp/overview),
+[GitHub](https://docs.scrapebadger.com/github/repositories) and
+[AutoScout24](https://docs.scrapebadger.com/api-reference/endpoint/autoscout24/listing) docs.
+
+The server lists a tool only while ScrapeBadger's live endpoint catalog lists its endpoint,
+and marks a deprecated or temporarily unavailable endpoint in the tool description. A call to
+a restricted endpoint returns the API's error and is not billed.
 
 ---
 

@@ -1,7 +1,8 @@
 """ScrapeBadger MCP Server.
 
 This module implements the Model Context Protocol (MCP) server for ScrapeBadger,
-providing AI agents with access to Twitter/X scraping and Google Search.
+providing AI agents with access to Twitter/X scraping, Google Search, AutoScout24
+listing detail, GitHub repository detail and Yelp business search.
 """
 
 from __future__ import annotations
@@ -10,12 +11,12 @@ import asyncio
 import json
 import os
 import sys
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import TextContent, Tool
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
 from scrapebadger import ScrapeBadger, ScrapeBadgerError
 
 TOOL_PATHS = {
@@ -36,6 +37,10 @@ TOOL_PATHS = {
     "get_twitter_community_detail": "/v1/twitter/communities/{community_id}",
     "search_twitter_communities": "/v1/twitter/communities/search",
     "search_google": "/v1/google/search",
+    "autoscout24_get_listing": "/v1/autoscout24/listing",
+    "github_get_repository": "/v1/github/repositories/{owner}/{repo}",
+    "yelp_search_businesses": "/v1/yelp/search",
+    "yelp_list_markets": "/v1/yelp/markets",
 }
 
 # Initialize MCP server
@@ -214,6 +219,101 @@ class SearchGoogleArgs(BaseModel):
     )
 
 
+class GetAutoscout24ListingArgs(BaseModel):
+    """Arguments for AutoScout24 listing detail: exactly one url or listing_id."""
+
+    url: str | None = Field(
+        default=None,
+        max_length=2048,
+        description="Full HTTPS listing URL from vehicle search results. Supply url or "
+        "listing_id, not both.",
+    )
+    listing_id: str | None = Field(
+        default=None,
+        min_length=36,
+        max_length=36,
+        description="Listing UUID from search results.",
+    )
+    market: Literal["de", "at", "be", "es", "fr", "it", "lu", "nl"] | None = Field(
+        default=None,
+        description="Inferred from url, otherwise de. An explicit market must match the URL host.",
+    )
+
+    @model_validator(mode="after")
+    def _exactly_one_locator(self) -> GetAutoscout24ListingArgs:
+        if (self.url is None) == (self.listing_id is None):
+            raise ValueError("Supply exactly one of url or listing_id")
+        return self
+
+
+class GetGitHubRepositoryArgs(BaseModel):
+    """Arguments for public GitHub repository detail."""
+
+    owner: str = Field(
+        min_length=1,
+        max_length=39,
+        pattern=r"^[A-Za-z0-9-]+$",
+        description="Owner login, e.g. cli (owner.login from a profile repository summary).",
+    )
+    repo: str = Field(
+        min_length=1,
+        max_length=100,
+        pattern=r"^[A-Za-z0-9_.-]+$",
+        description="Repository name, e.g. cli. Not a URL.",
+    )
+
+    @field_validator("repo")
+    @classmethod
+    def _not_dot_segment(cls, value: str) -> str:
+        if value in {".", ".."}:
+            raise ValueError("repo must not be . or ..")
+        return value
+
+
+class SearchYelpBusinessesArgs(BaseModel):
+    """Arguments for a Yelp business search."""
+
+    location: str = Field(
+        min_length=1,
+        max_length=128,
+        description="Where to search, as typed into Yelp: city, neighbourhood, address or "
+        "postcode.",
+    )
+    query: str | None = Field(
+        default=None,
+        max_length=128,
+        description="What to search for (e.g. pizza, plumbers). Optional when category is set.",
+    )
+    market: Literal["us", "ca"] = Field(
+        default="us", description="Yelp site: us (www.yelp.com) or ca (www.yelp.ca)."
+    )
+    category: str | None = Field(
+        default=None,
+        pattern=r"^[a-z0-9_-]{1,64}$",
+        description="Yelp category alias, e.g. pizza, coffee, plumbing.",
+    )
+    sort_by: Literal["recommended", "rating", "review_count"] = Field(
+        default="recommended", description="Yelp's own result order."
+    )
+    price: str | None = Field(
+        default=None,
+        pattern=r"^[1-4](,[1-4]){0,3}$",
+        description="Comma-separated price levels 1-4 ($ to $$$$), e.g. 1,2.",
+    )
+    features: str | None = Field(
+        default=None,
+        description="Comma-separated refinements: delivery, takeout, reservations, "
+        "outdoor_seating, good_for_kids, dogs_allowed, free_wifi, wheelchair_accessible.",
+    )
+    page: int = Field(
+        default=1, ge=1, le=11, description="1-based page, ten businesses each; pages 1-11."
+    )
+
+
+class ListYelpMarketsArgs(BaseModel):
+    """The Yelp markets list takes no arguments."""
+
+
 # =============================================================================
 # Tool Handlers
 # =============================================================================
@@ -367,6 +467,42 @@ async def list_tools() -> list[Tool]:
                 "Set expand_related_questions to also get the People Also Ask answers."
             ),
             inputSchema=SearchGoogleArgs.model_json_schema(),
+        ),
+        # Dedicated APIs (SCR-564, SCR-567, SCR-569)
+        Tool(
+            name="autoscout24_get_listing",
+            description=(
+                "Get full AutoScout24 listing detail: native specifications, equipment, "
+                "photos, prices and public seller data. Supply exactly one url or listing_id "
+                "from vehicle search; the URL decides the market, otherwise de. 10 credits; "
+                "removed or missing listings are unbilled 404s. Swiss listings are unsupported."
+            ),
+            inputSchema=GetAutoscout24ListingArgs.model_json_schema(),
+        ),
+        Tool(
+            name="github_get_repository",
+            description=(
+                "Get a public GitHub repository on its default branch: statistics, topics, "
+                "license, native README, root files and latest commit. Pass owner and repo "
+                "separately, not a URL. 10 credits per successful uncached call."
+            ),
+            inputSchema=GetGitHubRepositoryArgs.model_json_schema(),
+        ),
+        Tool(
+            name="yelp_search_businesses",
+            description=(
+                "Search Yelp businesses for a location (US or Canada) in Yelp's own order, "
+                "with rating, review count, categories, price, address and opening hours; "
+                "sponsored listings come back separately in ads. Ten per page, pages 1-11. "
+                "15 credits per page with results; empty searches, errors and cache hits are "
+                "free. Follow next_page while has_next_page is true."
+            ),
+            inputSchema=SearchYelpBusinessesArgs.model_json_schema(),
+        ),
+        Tool(
+            name="yelp_list_markets",
+            description="List the Yelp sites this API searches (us, ca). Free.",
+            inputSchema=ListYelpMarketsArgs.model_json_schema(),
         ),
     ]
 
@@ -545,6 +681,35 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
                 ai_overview=args.ai_overview,
                 expand_related_questions=args.expand_related_questions,
             )
+
+        # Dedicated APIs: raw response dicts, every native field kept
+        elif name == "autoscout24_get_listing":
+            args = GetAutoscout24ListingArgs(**arguments)
+            result = await client.autoscout24.get_listing(
+                url=args.url, listing_id=args.listing_id, market=args.market
+            )
+
+        elif name == "github_get_repository":
+            args = GetGitHubRepositoryArgs(**arguments)
+            # The SDK percent-encodes owner and repo as separate path segments.
+            result = await client.github.get_repository(args.owner, args.repo)
+
+        elif name == "yelp_search_businesses":
+            args = SearchYelpBusinessesArgs(**arguments)
+            result = await client.yelp.search_businesses(
+                location=args.location,
+                query=args.query,
+                market=args.market,
+                category=args.category,
+                sort_by=args.sort_by,
+                price=args.price,
+                features=args.features,
+                page=args.page,
+            )
+
+        elif name == "yelp_list_markets":
+            ListYelpMarketsArgs(**arguments)
+            result = await client.yelp.list_markets()
 
         else:
             return [

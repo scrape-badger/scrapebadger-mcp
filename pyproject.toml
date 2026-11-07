@@ -1,7 +1,7 @@
 [project]
 name = "scrapebadger-mcp"
-version = "0.3.0"
-description = "MCP server for ScrapeBadger - Twitter/X scraping and Google Search API for AI agents"
+version = "0.4.0"
+description = "MCP server for ScrapeBadger - Twitter/X, Google Search, Yelp, GitHub repositories and AutoScout24 listings for AI agents"
 readme = "README.md"
 license = { text = "MIT" }
 authors = [{ name = "ScrapeBadger", email = "support@scrapebadger.com" }]
@@ -13,6 +13,9 @@ keywords = [
     "twitter",
     "google",
     "serp",
+    "yelp",
+    "github",
+    "autoscout24",
     "x",
     "scraping",
     "api",
@@ -57,6 +60,14 @@ Issues = "https://github.com/scrape-badger/scrapebadger-mcp/issues"
 
 [project.scripts]
 scrapebadger-mcp = "scrapebadger_mcp.server:main"
+
+# DRAFT ONLY - remove before release. scrapebadger 0.74.0 (AutoScout24 listing,
+# GitHub repository, Yelp) is not on PyPI yet, so development, CI and the lock use the
+# reviewed SDK draft (scrape-badger/scrapebadger-python PR #88 head). The published
+# wheel ignores this table; at release, delete it and raise the floor above to the
+# final published SDK version.
+[tool.uv.sources]
+scrapebadger = { git = "https://github.com/scrape-badger/scrapebadger-python", rev = "535eaafc3f10cfb45386ab803455cf77bc526bb5" }
 
 [build-system]
 requires = ["hatchling"]
