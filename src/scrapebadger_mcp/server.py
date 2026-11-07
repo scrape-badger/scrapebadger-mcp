@@ -218,6 +218,69 @@ class SearchGoogleArgs(BaseModel):
         ),
     )
 
+    domain: str | None = Field(default=None, description="Google domain country hint.")
+    uule: str | None = Field(default=None, description="Encoded Google location.")
+    lr: str | None = Field(default=None, description="Result language restrict.")
+    tbs: str | None = Field(default=None, description="Google search filters.")
+    safe: str | None = Field(default=None, description="off or active.")
+    filter: int | None = Field(default=None, description="Omitted-results filter: 0 or 1.")
+    nfpr: int | None = Field(default=None, description="Disable spelling correction.")
+    output: str | None = Field(default=None, description="json or html.")
+    device: str | None = Field(default=None, description="Device target.")
+    user_agent: str | None = Field(default=None, description="Custom User-Agent.")
+    cr: str | None = Field(default=None, description="Country restrict.")
+    ludocid: str | None = Field(default=None, description="Place CID.")
+    lsig: str | None = Field(default=None, description="Map view ID.")
+    kgmid: str | None = Field(default=None, description="Knowledge Graph entity ID.")
+    si: str | None = Field(default=None, description="Cached Google parameters.")
+    ibp: str | None = Field(default=None, description="Layout control.")
+    uds: str | None = Field(default=None, description="Google filter string.")
+    google_domain: str | None = Field(
+        default=None,
+        description="Alias for domain; Google requests use google.com with country targeting.",
+    )
+    lat: float | None = Field(
+        default=None, description="Latitude; supply together with lon instead of location or uule."
+    )
+    lon: float | None = Field(default=None, description="Longitude; supply together with lat.")
+    radius: float | None = Field(
+        default=None,
+        description="Accuracy in meters; needs lat/lon or a city with a known center.",
+    )
+    color_scheme: Literal["light", "dark"] | None = Field(
+        default=None, description="Google color scheme."
+    )
+    tbm: Literal["isch", "lcl", "vid", "nws", "shop", "pts", "bks"] | None = Field(
+        default=None,
+        description="Search type; use output=html or the dedicated vertical APIs.",
+    )
+    udm: str | None = Field(
+        default=None,
+        description="Google result filter: 14 web, 18 forums. Other verticals require output=html.",
+    )
+    no_cache: bool = Field(
+        default=False, description="Bypass result caches and request a fresh Google fetch."
+    )
+    as_dt: str | None = Field(
+        default=None, description="Site restriction mode: i includes, e excludes as_sitesearch."
+    )
+    as_epq: str | None = Field(default=None, description="Exact phrase.")
+    as_eq: str | None = Field(default=None, description="Words to exclude.")
+    as_lq: str | None = Field(
+        default=None, description="Find pages linking to this URL; availability depends on Google."
+    )
+    as_nlo: str | None = Field(default=None, description="Numeric range minimum.")
+    as_nhi: str | None = Field(default=None, description="Numeric range maximum.")
+    as_oq: str | None = Field(default=None, description="Match any of these words.")
+    as_q: str | None = Field(default=None, description="Additional query words.")
+    as_qdr: str | None = Field(default=None, description="Time range, such as d, w, m or y1.")
+    as_rq: str | None = Field(
+        default=None, description="Related URL; availability depends on Google."
+    )
+    as_sitesearch: str | None = Field(default=None, description="Restrict results to a site.")
+    num: int | None = Field(default=None, description="Results per page.")
+    mode: str | None = Field(default=None, description="full or fast.")
+
 
 class GetAutoscout24ListingArgs(BaseModel):
     """Arguments for AutoScout24 listing detail: exactly one url or listing_id."""
@@ -672,15 +735,7 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent] |
         # Google tools
         elif name == "search_google":
             args = SearchGoogleArgs(**arguments)
-            result = await client.google.search.search(
-                args.q,
-                gl=args.gl,
-                hl=args.hl,
-                start=args.start,
-                location=args.location,
-                ai_overview=args.ai_overview,
-                expand_related_questions=args.expand_related_questions,
-            )
+            result = await client.google.search.search(**args.model_dump(exclude_none=True))
 
         # Dedicated APIs: raw response dicts, every native field kept
         elif name == "autoscout24_get_listing":

@@ -133,15 +133,33 @@ class TestCallTool:
                 {"q": "noise cancelling headphones", "expand_related_questions": 2},
             )
         client.google.search.search.assert_awaited_once_with(
-            "noise cancelling headphones",
+            q="noise cancelling headphones",
             gl="us",
             hl="en",
             start=0,
-            location=None,
             ai_overview=False,
             expand_related_questions=2,
+            no_cache=False,
         )
         assert json.loads(out[0].text)["related_questions"][0]["question"] == "q?"
+
+    @pytest.mark.asyncio
+    async def test_search_google_forwards_targeting_and_returns_html(self) -> None:
+        client = MagicMock()
+        client.google.search.search = AsyncMock(return_value="<html>kavinė</html>")
+        params = {
+            "q": "vinted api",
+            "location": "New York, USA",
+            "no_cache": True,
+            "as_epq": "vinted api",
+            "color_scheme": "dark",
+            "output": "html",
+        }
+        with patch("scrapebadger_mcp.server._get_client", AsyncMock(return_value=client)):
+            out = await call_tool("search_google", params)
+        sent = client.google.search.search.await_args.kwargs
+        assert {key: sent[key] for key in params} == params
+        assert json.loads(out[0].text) == {"data": "<html>kavinė</html>"}
 
 
 @pytest.mark.asyncio
