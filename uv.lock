@@ -1129,21 +1129,21 @@ wheels = [
 
 [[package]]
 name = "scrapebadger"
-version = "0.75.0"
+version = "0.76.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx" },
     { name = "pydantic" },
     { name = "websockets" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b5/f6/37cc0c5335ffa442c048a8cea63ebe752dd1c02f50360469a70826d2914a/scrapebadger-0.75.0.tar.gz", hash = "sha256:a14d486022f741672ca62d6b6550df225821faad4a830fc3609237009a3f8444", size = 265529, upload-time = "2026-11-07T19:59:24.772Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e7/d3/ff782367fe65756062abda25f8e85e43019570e2eebc60d8a1566954b9a7/scrapebadger-0.76.0.tar.gz", hash = "sha256:9366872cc23d107d557b2325f953f249b85e21d5b4b804f3877c66b344436cab", size = 265650, upload-time = "2026-11-07T21:12:17.43Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/57/7b/894d95ccfe53b566215821f8ea57e84da08714b8ebbc2ef3322dfe3392c6/scrapebadger-0.75.0-py3-none-any.whl", hash = "sha256:2918a87de1d61b0828eabef4b17f8889c94b995bbe01eac20e01b5f1ce108b25", size = 414887, upload-time = "2026-11-07T19:59:23.041Z" },
+    { url = "https://files.pythonhosted.org/packages/2e/b1/ae0928c636f1f40292df4ff8f963ac7de8467c81b57d6d524263df6fcee3/scrapebadger-0.76.0-py3-none-any.whl", hash = "sha256:cd22b35708935e1d2205bb7e554e456a7ca97eb37d19a32de8b2e9d6278cfa29", size = 415003, upload-time = "2026-11-07T21:12:15.807Z" },
 ]
 
 [[package]]
 name = "scrapebadger-mcp"
-version = "0.5.0"
+version = "0.6.0"
 source = { editable = "." }
 dependencies = [
     { name = "mcp" },
@@ -1167,7 +1167,7 @@ requires-dist = [
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0.0" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.23.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.8.0" },
-    { name = "scrapebadger", specifier = ">=0.75.0" },
+    { name = "scrapebadger", specifier = ">=0.76.0" },
 ]
 provides-extras = ["dev"]
 

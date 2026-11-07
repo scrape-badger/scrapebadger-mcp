@@ -278,6 +278,18 @@ class SearchGoogleArgs(BaseModel):
         default=None, description="Related URL; availability depends on Google."
     )
     as_sitesearch: str | None = Field(default=None, description="Restrict results to a site.")
+    oq: str | None = Field(
+        default=None,
+        description="Original query sent to Google. Defaults to q; an empty string omits it.",
+    )
+    sourceid: str | None = Field(
+        default=None,
+        description="Google source identifier. Defaults to chrome; an empty string omits it.",
+    )
+    ie: str | None = Field(
+        default=None,
+        description="Google input encoding hint. Defaults to UTF-8; an empty string omits it.",
+    )
     num: int | None = Field(default=None, description="Results per page.")
     mode: str | None = Field(default=None, description="full or fast.")
 

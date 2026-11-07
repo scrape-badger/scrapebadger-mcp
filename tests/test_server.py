@@ -148,6 +148,9 @@ class TestCallTool:
         client = MagicMock()
         client.google.search.search = AsyncMock(return_value="<html>kavinė</html>")
         params = {
+            "oq": "vinted café + api&gl=fr",
+            "sourceid": "",
+            "ie": "UTF-8",
             "q": "vinted api",
             "location": "New York, USA",
             "no_cache": True,
