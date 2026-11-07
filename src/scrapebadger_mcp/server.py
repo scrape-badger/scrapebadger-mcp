@@ -18,6 +18,26 @@ from mcp.types import TextContent, Tool
 from pydantic import BaseModel, Field
 from scrapebadger import ScrapeBadger, ScrapeBadgerError
 
+TOOL_PATHS = {
+    "get_twitter_user_profile": "/v1/twitter/users/{username}/by_username",
+    "get_twitter_user_about": "/v1/twitter/users/{username}/about",
+    "search_twitter_users": "/v1/twitter/users/search_users",
+    "get_twitter_followers": "/v1/twitter/users/{username}/followers",
+    "get_twitter_following": "/v1/twitter/users/{username}/followings",
+    "get_twitter_tweet": "/v1/twitter/tweets/tweet/{tweet_id}",
+    "get_twitter_user_tweets": "/v1/twitter/users/{username}/latest_tweets",
+    "search_twitter_tweets": "/v1/twitter/tweets/advanced_search",
+    "get_twitter_trends": "/v1/twitter/trends/",
+    "get_twitter_place_trends": "/v1/twitter/trends/place/{woeid}",
+    "search_twitter_places": "/v1/twitter/geo/search",
+    "get_twitter_list_detail": "/v1/twitter/lists/{list_id}/detail",
+    "search_twitter_lists": "/v1/twitter/lists/search",
+    "get_twitter_list_tweets": "/v1/twitter/lists/{list_id}/tweets",
+    "get_twitter_community_detail": "/v1/twitter/communities/{community_id}",
+    "search_twitter_communities": "/v1/twitter/communities/search",
+    "search_google": "/v1/google/search",
+}
+
 # Initialize MCP server
 server = Server("scrapebadger")
 
@@ -202,7 +222,7 @@ class SearchGoogleArgs(BaseModel):
 @server.list_tools()  # type: ignore[no-untyped-call, untyped-decorator]
 async def list_tools() -> list[Tool]:
     """List all available tools."""
-    return [
+    tools = [
         # User tools
         Tool(
             name="get_twitter_user_profile",
@@ -349,6 +369,31 @@ async def list_tools() -> list[Tool]:
             inputSchema=SearchGoogleArgs.model_json_schema(),
         ),
     ]
+
+    import re
+
+    entries = await (await _get_client()).endpoints()
+
+    def normalize(path: str) -> str:
+        return re.sub(r"\{[^}]+\}", "{}", path).rstrip("/")
+
+    states = {normalize(row["path"]): row["status"] for row in entries if row["method"] == "GET"}
+    visible = []
+    for tool in tools:
+        path = TOOL_PATHS[tool.name]
+        state = states.get(normalize(path))
+        if state is None:
+            continue
+        if state != "active":
+            tool = tool.model_copy(
+                update={
+                    "description": state.replace("_", " ").capitalize()
+                    + ". "
+                    + (tool.description or "")
+                }
+            )
+        visible.append(tool)
+    return visible
 
 
 @server.call_tool()  # type: ignore[untyped-decorator]

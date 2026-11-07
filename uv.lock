@@ -1129,21 +1129,21 @@ wheels = [
 
 [[package]]
 name = "scrapebadger"
-version = "0.70.0"
+version = "0.73.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx" },
     { name = "pydantic" },
     { name = "websockets" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/76/56/c512fd82f3e2939d9317841d8b272294c30c40f56e1d2e94cfba4a321c7c/scrapebadger-0.70.0.tar.gz", hash = "sha256:21ca246807b6712d15977300ea3918aec43f6e7b1ba530c71ecd9b80e73a0bfb", size = 261285, upload-time = "2026-11-03T08:36:37.195Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/84/0e/1729a0ba3cdd834c958c0f59eebb169d3f034cc246295071bddda177865d/scrapebadger-0.73.0.tar.gz", hash = "sha256:38444b43a754f47797063972da5bc10c20741baf9c2406c209f4dd04f097fc16", size = 263171, upload-time = "2026-11-07T14:00:32.365Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/ee/9f/35a7bd6822ee2f3ddef3a9bc23e6f85d08724c1690e5c9b20e3dad2d9164/scrapebadger-0.70.0-py3-none-any.whl", hash = "sha256:3fbc4cad660b2dcec5ea908c677794fd65f86d522dbfa1773cf625dc8a6d3c17", size = 407561, upload-time = "2026-11-03T08:36:35.305Z" },
+    { url = "https://files.pythonhosted.org/packages/07/7d/a00dd0a52ea20e3dffa2de71b0e573585c103d7d8ba4010915d7ac919e3b/scrapebadger-0.73.0-py3-none-any.whl", hash = "sha256:93a21d093930cdc822afa2a91f25968010855108a800807a5a5c52fef3553e27", size = 412314, upload-time = "2026-11-07T14:00:30.698Z" },
 ]
 
 [[package]]
 name = "scrapebadger-mcp"
-version = "0.2.0"
+version = "0.3.0"
 source = { editable = "." }
 dependencies = [
     { name = "mcp" },
@@ -1161,13 +1161,13 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "mcp", specifier = ">=1.0.0" },
+    { name = "mcp", specifier = ">=1.0.0,<2" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.13.0" },
     { name = "pydantic", specifier = ">=2.0.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0.0" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.23.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.8.0" },
-    { name = "scrapebadger", specifier = ">=0.70.0" },
+    { name = "scrapebadger", specifier = ">=0.73.0" },
 ]
 provides-extras = ["dev"]
 
