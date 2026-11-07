@@ -1,7 +1,8 @@
 """ScrapeBadger MCP Server.
 
 Model Context Protocol (MCP) server for ScrapeBadger, enabling AI agents
-like Claude, ChatGPT, and Cursor to access Twitter/X data and Google Search.
+like Claude, ChatGPT, and Cursor to access Twitter/X data, Google Search, AutoScout24
+listing detail, GitHub repository detail and Yelp business search.
 
 Example:
     Configure in Claude Desktop's config:
@@ -23,6 +24,6 @@ Example:
 
 from scrapebadger_mcp.server import main, serve
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 __all__ = ["__version__", "main", "serve"]
