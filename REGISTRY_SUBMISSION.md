@@ -16,115 +16,34 @@ This guide explains how to submit the ScrapeBadger MCP server to various registr
 
 ## 1. Official MCP Registry
 
-The [MCP Registry](https://registry.modelcontextprotocol.io) is the primary discovery mechanism for MCP servers. This is the most important registration.
+For the already released **v0.4.0**, use
+[Publish v0.4.0 metadata to MCP Registry](.github/workflows/publish-mcp-registry.yml).
+It publishes the committed `server.json` for
+`io.github.scrape-badger/scrapebadger` at
+`bb5993811176b465faae3ea2f2c55d40bbec6642` (tag `v0.4.0`). It checks that
+`scrapebadger-mcp==0.4.0` already exists on PyPI; it does not build or upload a
+package. Do not rerun the PyPI publication workflow for this release.
 
-### Prerequisites
-
-- Package must be published to a package registry (PyPI, npm, or DockerHub)
-- GitHub repository must be public
-- Namespace ownership must be verified
-
-### Step 1: Install MCP CLI
-
-```bash
-npm install -g @anthropic/mcp-cli
-# or
-npx @anthropic/mcp-cli
-```
-
-### Step 2: Authenticate
+After this workflow is reviewed and merged into `main`, a maintainer can
+explicitly dispatch it:
 
 ```bash
-mcp auth login
-# Follow the prompts to authenticate with GitHub
+gh workflow run publish-mcp-registry.yml --repo scrape-badger/scrapebadger-mcp --ref main
 ```
 
-### Step 3: Create server.json
+The workflow only runs from `main` in this repository and has no checkout or
+version inputs. It verifies the pinned mcp-publisher v1.8.7 archive with SHA256
+and its official Sigstore release identity, then validates metadata and uses
+`mcp-publisher login github-oidc` before publishing. Job permissions are limited
+to `contents: read` and `id-token: write`; no registry secret or GitHub PAT is
+needed. Interactive GitHub device login cannot currently prove organization
+ownership; see the official [authentication guide](https://github.com/modelcontextprotocol/registry/blob/main/docs/modelcontextprotocol-io/authentication.mdx)
+and [GitHub Actions guide](https://github.com/modelcontextprotocol/registry/blob/main/docs/modelcontextprotocol-io/github-actions.mdx).
 
-Create a `server.json` file in your repository root:
-
-```json
-{
-  "$schema": "https://registry.modelcontextprotocol.io/schemas/server.json",
-  "name": "scrapebadger",
-  "displayName": "ScrapeBadger",
-  "description": "Twitter/X scraping API for AI agents. Get user profiles, search tweets, access trends, and more.",
-  "homepage": "https://scrapebadger.com",
-  "repository": "https://github.com/scrape-badger/scrapebadger-mcp",
-  "license": "MIT",
-  "author": {
-    "name": "ScrapeBadger",
-    "email": "support@scrapebadger.com",
-    "url": "https://scrapebadger.com"
-  },
-  "categories": [
-    "data",
-    "social-media",
-    "scraping",
-    "twitter"
-  ],
-  "tags": [
-    "twitter",
-    "x",
-    "social-media",
-    "scraping",
-    "api",
-    "tweets",
-    "users",
-    "trends"
-  ],
-  "distribution": {
-    "type": "pypi",
-    "package": "scrapebadger-mcp"
-  },
-  "runtime": {
-    "type": "python",
-    "minVersion": "3.10"
-  },
-  "install": {
-    "instructions": "pip install scrapebadger-mcp",
-    "command": {
-      "command": "uvx",
-      "args": ["scrapebadger-mcp"]
-    },
-    "env": [
-      {
-        "name": "SCRAPEBADGER_API_KEY",
-        "description": "Your ScrapeBadger API key from scrapebadger.com",
-        "required": true
-      }
-    ]
-  },
-  "capabilities": {
-    "tools": true,
-    "resources": false,
-    "prompts": false
-  }
-}
-```
-
-### Step 4: Publish to Registry
-
-```bash
-# Navigate to your repository
-cd scrapebadger-mcp
-
-# Publish
-mcp publish
-
-# Or with npx
-npx @anthropic/mcp-cli publish
-```
-
-### Step 5: Verify Publication
-
-Visit [registry.modelcontextprotocol.io](https://registry.modelcontextprotocol.io) and search for "scrapebadger".
-
-### Troubleshooting
-
-- **"Namespace ownership validation failed"**: Ensure you're logged in with the GitHub account that owns the repository
-- **"Package not found"**: Publish to PyPI first (see next section)
-- **High traffic errors**: The registry may be busy; retry the publish command
+Inspect the Actions run and confirm version `0.4.0` in the
+[MCP Registry](https://registry.modelcontextprotocol.io). If validation or
+publication fails, inspect the error before retrying; do not reupload the
+immutable PyPI release or substitute a broad GitHub token.
 
 ---
 
