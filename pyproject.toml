@@ -40,7 +40,7 @@ classifiers = [
 requires-python = ">=3.10"
 dependencies = [
     "mcp>=1.0.0,<2",
-    "scrapebadger>=0.73.0",
+    "scrapebadger>=0.74.0",
     "pydantic>=2.0.0",
 ]
 
@@ -60,14 +60,6 @@ Issues = "https://github.com/scrape-badger/scrapebadger-mcp/issues"
 
 [project.scripts]
 scrapebadger-mcp = "scrapebadger_mcp.server:main"
-
-# DRAFT ONLY - remove before release. scrapebadger 0.74.0 (AutoScout24 listing,
-# GitHub repository, Yelp) is not on PyPI yet, so development, CI and the lock use the
-# reviewed SDK draft (scrape-badger/scrapebadger-python PR #88 head). The published
-# wheel ignores this table; at release, delete it and raise the floor above to the
-# final published SDK version.
-[tool.uv.sources]
-scrapebadger = { git = "https://github.com/scrape-badger/scrapebadger-python", rev = "535eaafc3f10cfb45386ab803455cf77bc526bb5" }
 
 [build-system]
 requires = ["hatchling"]

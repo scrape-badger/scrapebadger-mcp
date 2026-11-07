@@ -14,6 +14,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 from mcp.shared.memory import create_connected_server_and_client_session
+from mcp.types import CallToolResult
 from scrapebadger import ScrapeBadger
 
 from scrapebadger_mcp.server import TOOL_PATHS, call_tool, list_tools, server
@@ -41,7 +42,8 @@ def dispatched(name: str, arguments: dict[str, Any], client: Any) -> Any:
     async def run() -> Any:
         with patch("scrapebadger_mcp.server._get_client", AsyncMock(return_value=client)):
             out = await call_tool(name, arguments)
-        return json.loads(out[0].text)
+        content = out.content if isinstance(out, CallToolResult) else out
+        return json.loads(content[0].text)
 
     return run()
 
@@ -294,5 +296,9 @@ async def test_mcp_session_lists_and_calls_the_new_tools() -> None:
         async with create_connected_server_and_client_session(server) as session:
             names = {tool.name for tool in (await session.list_tools()).tools}
             result = await session.call_tool("yelp_list_markets", {})
+            recorder.answers["/v1/yelp/search"] = (423, {"error": "endpoint_unavailable"})
+            refused = await session.call_tool("yelp_search_businesses", {"location": "Austin"})
+            assert refused.isError
+            assert json.loads(refused.content[0].text)["error_type"] == "ScrapeBadgerError"
     assert set(DEDICATED) <= names
     assert json.loads(result.content[0].text) == {"markets": [{"code": "ca"}]}

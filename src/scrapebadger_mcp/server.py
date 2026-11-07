@@ -15,7 +15,7 @@ from typing import Annotated, Any, Literal
 
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
-from mcp.types import TextContent, Tool
+from mcp.types import CallToolResult, TextContent, Tool
 from pydantic import BaseModel, Field, field_validator, model_validator
 from scrapebadger import ScrapeBadger, ScrapeBadgerError
 
@@ -533,7 +533,7 @@ async def list_tools() -> list[Tool]:
 
 
 @server.call_tool()  # type: ignore[untyped-decorator]
-async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
+async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent] | CallToolResult:
     """Handle tool calls."""
     try:
         client = await _get_client()
@@ -724,18 +724,21 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
         return [TextContent(type="text", text=json.dumps(serialized, indent=2))]
 
     except ScrapeBadgerError as e:
-        return [
-            TextContent(
-                type="text",
-                text=json.dumps(
-                    {
-                        "error": str(e),
-                        "error_type": type(e).__name__,
-                    },
-                    indent=2,
-                ),
-            )
-        ]
+        return CallToolResult(
+            isError=True,
+            content=[
+                TextContent(
+                    type="text",
+                    text=json.dumps(
+                        {
+                            "error": str(e),
+                            "error_type": type(e).__name__,
+                        },
+                        indent=2,
+                    ),
+                )
+            ],
+        )
     except Exception as e:
         return [
             TextContent(
