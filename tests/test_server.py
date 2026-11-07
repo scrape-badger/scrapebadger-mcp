@@ -142,3 +142,30 @@ class TestCallTool:
             expand_related_questions=2,
         )
         assert json.loads(out[0].text)["related_questions"][0]["question"] == "q?"
+
+
+@pytest.mark.asyncio
+async def test_lifecycle_hides_and_marks_tools(monkeypatch):
+    from unittest.mock import AsyncMock
+
+    from scrapebadger import ScrapeBadger
+
+    monkeypatch.setattr(
+        ScrapeBadger,
+        "endpoints",
+        AsyncMock(
+            return_value=[
+                {
+                    "method": "GET",
+                    "path": "/v1/google/search",
+                    "api": "google",
+                    "status": "deprecated",
+                }
+            ]
+        ),
+    )
+    tools = await list_tools()
+    assert [tool.name for tool in tools] == ["search_google"]
+    assert tools[0].description.startswith("Deprecated.")
+    monkeypatch.setattr(ScrapeBadger, "endpoints", AsyncMock(return_value=[]))
+    assert await list_tools() == []
