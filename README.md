@@ -453,3 +453,11 @@ MIT License - see [LICENSE](LICENSE) for details.
 <p align="center">
   Made with love by <a href="https://scrapebadger.com">ScrapeBadger</a>
 </p>
+
+### Public Facebook Marketplace
+
+`facebook_marketplace_search` reads public listings without a Facebook account.
+Verified filters enforce radius in kilometres and age. Set `include_details=true`
+for full public descriptions and photo URLs. Follow the opaque `end_cursor`,
+including after empty filtered pages; coverage is partial and newest-first order
+applies within each page. `facebook_marketplace_item` reads one listing.

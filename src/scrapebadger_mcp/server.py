@@ -41,6 +41,8 @@ TOOL_PATHS = {
     "github_get_repository": "/v1/github/repositories/{owner}/{repo}",
     "yelp_search_businesses": "/v1/yelp/search",
     "yelp_list_markets": "/v1/yelp/markets",
+    "facebook_marketplace_search": "/v1/facebook/marketplace/search",
+    "facebook_marketplace_item": "/v1/facebook/marketplace/item/{item_id}",
 }
 
 # Initialize MCP server
@@ -385,6 +387,27 @@ class SearchYelpBusinessesArgs(BaseModel):
     )
 
 
+class SearchMarketplaceArgs(BaseModel):
+    """Account-free public Marketplace search with verified filters."""
+
+    query: str = Field(min_length=1)
+    location: str = "london"
+    radius: int | None = Field(default=None, ge=1, le=500)
+    min_price: str | None = None
+    max_price: str | None = None
+    days_since_listed: str | None = "2"
+    sort_by: str = "creation_time_descend"
+    strict_filters: bool = True
+    include_details: bool = False
+    after: str | None = None
+
+
+class GetMarketplaceItemArgs(BaseModel):
+    """A public listing ID from Marketplace search."""
+
+    item_id: str = Field(pattern=r"^[0-9]{1,32}$")
+
+
 class ListYelpMarketsArgs(BaseModel):
     """The Yelp markets list takes no arguments."""
 
@@ -573,6 +596,20 @@ async def list_tools() -> list[Tool]:
                 "free. Follow next_page while has_next_page is true."
             ),
             inputSchema=SearchYelpBusinessesArgs.model_json_schema(),
+        ),
+        Tool(
+            name="facebook_marketplace_search",
+            description="Search public Facebook Marketplace without an account. Verified filters "
+            "enforce radius in km and age; include_details adds description and public photos. "
+            "Coverage is partial. Follow opaque end_cursor; an empty filtered page can still "
+            "have a continuation. Sort all collected pages for newest-first monitoring.",
+            inputSchema=SearchMarketplaceArgs.model_json_schema(),
+        ),
+        Tool(
+            name="facebook_marketplace_item",
+            description="Get public Marketplace listing detail: description, exposed photo URLs, "
+            "seller and approximate coordinates. No Facebook account needed.",
+            inputSchema=GetMarketplaceItemArgs.model_json_schema(),
         ),
         Tool(
             name="yelp_list_markets",
@@ -773,6 +810,14 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent] |
                 features=args.features,
                 page=args.page,
             )
+
+        elif name == "facebook_marketplace_search":
+            args = SearchMarketplaceArgs(**arguments)
+            result = await client.facebook.search_marketplace(**args.model_dump(exclude_none=True))
+
+        elif name == "facebook_marketplace_item":
+            args = GetMarketplaceItemArgs(**arguments)
+            result = await client.facebook.get_a_marketplace_item(args.item_id)
 
         elif name == "yelp_list_markets":
             ListYelpMarketsArgs(**arguments)

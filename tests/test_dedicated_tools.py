@@ -57,7 +57,7 @@ def test_paths_are_the_api_operations() -> None:
 
 async def test_inventory_has_every_tool_once() -> None:
     names = [tool.name for tool in await list_tools()]
-    assert len(names) == len(set(names)) == len(TOOL_PATHS) == 21
+    assert len(names) == len(set(names)) == len(TOOL_PATHS) == 23
     assert set(DEDICATED) <= set(names)
 
 
@@ -302,3 +302,25 @@ async def test_mcp_session_lists_and_calls_the_new_tools() -> None:
             assert json.loads(refused.content[0].text)["error_type"] == "ScrapeBadgerError"
     assert set(DEDICATED) <= names
     assert json.loads(result.content[0].text) == {"markets": [{"code": "ca"}]}
+
+
+async def test_marketplace_verified_cursor_reaches_sdk_without_json_coercion() -> None:
+    client = MagicMock()
+    client.facebook.search_marketplace = AsyncMock(
+        return_value={
+            "listings": [],
+            "has_next_page": True,
+            "end_cursor": "sbmp1_next",
+            "search_info": {"coverage": "partial"},
+        }
+    )
+    result = await dispatched(
+        "facebook_marketplace_search",
+        {"query": "bike", "radius": 20, "after": "sbmp1_previous"},
+        client,
+    )
+    assert result["has_next_page"] is True
+    kwargs = client.facebook.search_marketplace.call_args.kwargs
+    assert kwargs["after"] == "sbmp1_previous"
+    assert kwargs["strict_filters"] is True
+    assert kwargs["radius"] == 20
