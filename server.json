@@ -2,17 +2,17 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.scrape-badger/scrapebadger",
   "title": "ScrapeBadger",
-  "description": "Twitter/X, Google Search, Yelp, GitHub repositories and AutoScout24 listings for AI agents.",
+  "description": "Twitter/X, Google, Facebook Marketplace, Yelp, GitHub and AutoScout24 for AI agents.",
   "repository": {
     "url": "https://github.com/scrape-badger/scrapebadger-mcp",
     "source": "github"
   },
-  "version": "0.6.0",
+  "version": "0.6.1",
   "packages": [
     {
       "registryType": "pypi",
       "identifier": "scrapebadger-mcp",
-      "version": "0.6.0",
+      "version": "0.6.1",
       "transport": {
         "type": "stdio"
       },
