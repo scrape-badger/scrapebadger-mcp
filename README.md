@@ -217,7 +217,7 @@ not come back is not billed. See the
 
 | Tool | Description |
 |------|-------------|
-| `yelp_search_businesses` | Yelp business search (`/v1/yelp/search`) for a `location` in the US (`market=us`, default) or Canada (`ca`): rating, review count, categories, price, address and opening hours, ads in a separate `ads` list. Filters: `query`, `category`, `sort_by`, `price`, `features`. Ten per page, `page` 1-11. 15 credits per page with results; empty searches, errors and cache hits are free |
+| `yelp_search_businesses` | Yelp business search (`/v1/yelp/search`) for a `location` in the US (`market=us`, default) or Canada (`ca`): rating, review count, categories, price, address and opening hours, ads in a separate `ads` list. Filters: `query`, `category`, `sort_by`, `price`, `features`. Ten per page, `page` 1-11. 15 credits per page with results; empty searches and errors are free |
 | `yelp_list_markets` | The Yelp sites this API searches (`/v1/yelp/markets`). Free |
 | `github_get_repository` | A public repository on its default branch (`/v1/github/repositories/{owner}/{repo}`): statistics, topics, license, native README, root files and latest commit. Pass `owner` and `repo` separately, not a URL. 10 credits |
 | `autoscout24_get_listing` | Full AutoScout24 listing detail (`/v1/autoscout24/listing`): native specifications, equipment, photos, prices and public seller data. Pass exactly one `url` or `listing_id` from a vehicle search; `market` is inferred from the URL, otherwise `de`. 10 credits; removed listings are unbilled 404s |

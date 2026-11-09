@@ -261,7 +261,8 @@ class SearchGoogleArgs(BaseModel):
         description="Google result filter: 14 web, 18 forums. Other verticals require output=html.",
     )
     no_cache: bool = Field(
-        default=False, description="Bypass result caches and request a fresh Google fetch."
+        default=False,
+        description="No effect: responses are never cached, so every call is a fresh Google fetch.",
     )
     as_dt: str | None = Field(
         default=None, description="Site restriction mode: i includes, e excludes as_sitesearch."
@@ -582,7 +583,7 @@ async def list_tools() -> list[Tool]:
             description=(
                 "Get a public GitHub repository on its default branch: statistics, topics, "
                 "license, native README, root files and latest commit. Pass owner and repo "
-                "separately, not a URL. 10 credits per successful uncached call."
+                "separately, not a URL. 10 credits per successful call."
             ),
             inputSchema=GetGitHubRepositoryArgs.model_json_schema(),
         ),
@@ -592,7 +593,7 @@ async def list_tools() -> list[Tool]:
                 "Search Yelp businesses for a location (US or Canada) in Yelp's own order, "
                 "with rating, review count, categories, price, address and opening hours; "
                 "sponsored listings come back separately in ads. Ten per page, pages 1-11. "
-                "15 credits per page with results; empty searches, errors and cache hits are "
+                "15 credits per page with results; empty searches and errors are "
                 "free. Follow next_page while has_next_page is true."
             ),
             inputSchema=SearchYelpBusinessesArgs.model_json_schema(),
