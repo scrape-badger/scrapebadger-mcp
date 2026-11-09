@@ -231,6 +231,15 @@ The server lists a tool only while ScrapeBadger's live endpoint catalog lists it
 and marks a deprecated or temporarily unavailable endpoint in the tool description. A call to
 a restricted endpoint returns the API's error and is not billed.
 
+### Bypassing the cache
+
+The API caches repeated calls for 60 seconds. If the same API key sends an identical request
+within 60 seconds, the API returns the stored response with `X-Cache: HIT` and
+`X-Credits-Used: 0`. It does not fetch the data again. Every tool that costs credits takes
+`no_cache` (default `false`). Set `no_cache: true` to skip that cache and fetch a fresh
+result, for example to ask the same question several times and compare the answers. The
+call is billed like any other. The server sends `Cache-Control: no-cache` with the request.
+
 ---
 
 ## Example Conversations

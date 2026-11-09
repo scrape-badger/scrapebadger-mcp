@@ -324,3 +324,58 @@ async def test_marketplace_verified_cursor_reaches_sdk_without_json_coercion() -
     assert kwargs["after"] == "sbmp1_previous"
     assert kwargs["strict_filters"] is True
     assert kwargs["radius"] == 20
+
+
+# ---------------------------------------------------------------- no_cache (SCR-396)
+
+FREE_TOOLS = {"yelp_list_markets"}
+
+
+async def test_every_billed_tool_offers_no_cache_default_off() -> None:
+    tools = {tool.name: tool.inputSchema for tool in await list_tools()}
+    for name, schema in tools.items():
+        if name in FREE_TOOLS:
+            assert "no_cache" not in schema.get("properties", {}), name
+            continue
+        flag = schema["properties"]["no_cache"]
+        assert flag["type"] == "boolean", name
+        assert flag["default"] is False, name
+        assert "no_cache" not in schema.get("required", []), name
+
+
+async def test_transport_sends_cache_control_only_when_asked() -> None:
+    body = {"repository": {"name": "cli"}}
+    recorder = Recorder({"/v1/github/repositories/cli/cli": (200, body)})
+    client = await sdk_over(recorder)
+    arguments = {"owner": "cli", "repo": "cli"}
+    assert await dispatched("github_get_repository", arguments, client) == body
+    fresh = {**arguments, "no_cache": True}
+    assert await dispatched("github_get_repository", fresh, client) == body
+    assert await dispatched("github_get_repository", arguments, client) == body
+    assert [r.headers.get("cache-control") for r in recorder.requests] == [
+        None,
+        "no-cache",
+        None,
+    ]
+    # The flag is a header, never a query parameter the endpoint would reject.
+    assert all(r.url.query == b"" for r in recorder.requests)
+    assert client.config.no_cache is False
+
+
+async def test_no_cache_is_not_forwarded_as_a_marketplace_argument() -> None:
+    client = MagicMock()
+    client.with_options.return_value = client
+    client.facebook.search_marketplace = AsyncMock(return_value={"listings": []})
+    await dispatched("facebook_marketplace_search", {"query": "bike", "no_cache": True}, client)
+    client.with_options.assert_called_once_with(no_cache=True)
+    assert "no_cache" not in client.facebook.search_marketplace.call_args.kwargs
+
+
+async def test_bad_no_cache_value_is_an_error_not_a_call() -> None:
+    client = MagicMock()
+    client.github.get_repository = AsyncMock()
+    out = await dispatched(
+        "github_get_repository", {"owner": "cli", "repo": "cli", "no_cache": "maybe"}, client
+    )
+    assert out["error_type"] == "ValidationError"
+    client.github.get_repository.assert_not_awaited()

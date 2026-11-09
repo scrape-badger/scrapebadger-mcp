@@ -146,6 +146,7 @@ class TestCallTool:
     @pytest.mark.asyncio
     async def test_search_google_forwards_targeting_and_returns_html(self) -> None:
         client = MagicMock()
+        client.with_options.return_value = client
         client.google.search.search = AsyncMock(return_value="<html>kavinė</html>")
         params = {
             "oq": "vinted café + api&gl=fr",
@@ -162,6 +163,8 @@ class TestCallTool:
             out = await call_tool("search_google", params)
         sent = client.google.search.search.await_args.kwargs
         assert {key: sent[key] for key in params} == params
+        # no_cache also skips the gateway cache (Cache-Control: no-cache).
+        client.with_options.assert_called_once_with(no_cache=True)
         assert json.loads(out[0].text) == {"data": "<html>kavinė</html>"}
 
 

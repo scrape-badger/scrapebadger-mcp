@@ -85,61 +85,71 @@ def _serialize_model(obj: Any) -> dict[str, Any]:
 # Tool Definitions
 # =============================================================================
 
+NO_CACHE_DESCRIPTION = (
+    "Skip the 60-second duplicate-request cache and fetch a fresh result; billed as a normal call."
+)
 
-class GetUserProfileArgs(BaseModel):
+
+class NoCacheArgs(BaseModel):
+    """The cache bypass every billed tool accepts."""
+
+    no_cache: bool = Field(default=False, description=NO_CACHE_DESCRIPTION)
+
+
+class GetUserProfileArgs(NoCacheArgs):
     """Arguments for getting a user profile."""
 
     username: str = Field(description="Twitter username (without @)")
 
 
-class GetUserAboutArgs(BaseModel):
+class GetUserAboutArgs(NoCacheArgs):
     """Arguments for getting extended user info."""
 
     username: str = Field(description="Twitter username (without @)")
 
 
-class SearchUsersArgs(BaseModel):
+class SearchUsersArgs(NoCacheArgs):
     """Arguments for searching users."""
 
     query: str = Field(description="Search query string")
     max_results: int = Field(default=20, ge=1, le=100, description="Max results (1-100)")
 
 
-class GetFollowersArgs(BaseModel):
+class GetFollowersArgs(NoCacheArgs):
     """Arguments for getting followers."""
 
     username: str = Field(description="Twitter username (without @)")
     max_results: int = Field(default=50, ge=1, le=200, description="Max results (1-200)")
 
 
-class GetFollowingArgs(BaseModel):
+class GetFollowingArgs(NoCacheArgs):
     """Arguments for getting following."""
 
     username: str = Field(description="Twitter username (without @)")
     max_results: int = Field(default=50, ge=1, le=200, description="Max results (1-200)")
 
 
-class GetTweetArgs(BaseModel):
+class GetTweetArgs(NoCacheArgs):
     """Arguments for getting a tweet."""
 
     tweet_id: str = Field(description="Tweet ID")
 
 
-class GetUserTweetsArgs(BaseModel):
+class GetUserTweetsArgs(NoCacheArgs):
     """Arguments for getting user tweets."""
 
     username: str = Field(description="Twitter username (without @)")
     max_results: int = Field(default=20, ge=1, le=100, description="Max results (1-100)")
 
 
-class SearchTweetsArgs(BaseModel):
+class SearchTweetsArgs(NoCacheArgs):
     """Arguments for searching tweets."""
 
     query: str = Field(description="Search query string")
     max_results: int = Field(default=20, ge=1, le=100, description="Max results (1-100)")
 
 
-class GetTrendsArgs(BaseModel):
+class GetTrendsArgs(NoCacheArgs):
     """Arguments for getting trends."""
 
     category: str | None = Field(
@@ -148,51 +158,51 @@ class GetTrendsArgs(BaseModel):
     )
 
 
-class GetPlaceTrendsArgs(BaseModel):
+class GetPlaceTrendsArgs(NoCacheArgs):
     """Arguments for getting place trends."""
 
     woeid: int = Field(description="Where On Earth ID (e.g., 23424977 for US, 44418 for London)")
 
 
-class SearchPlacesArgs(BaseModel):
+class SearchPlacesArgs(NoCacheArgs):
     """Arguments for searching places."""
 
     query: str = Field(description="Place name to search")
 
 
-class GetListDetailArgs(BaseModel):
+class GetListDetailArgs(NoCacheArgs):
     """Arguments for getting list detail."""
 
     list_id: str = Field(description="Twitter list ID")
 
 
-class SearchListsArgs(BaseModel):
+class SearchListsArgs(NoCacheArgs):
     """Arguments for searching lists."""
 
     query: str = Field(description="Search query for lists")
     max_results: int = Field(default=20, ge=1, le=50, description="Max results (1-50)")
 
 
-class GetListTweetsArgs(BaseModel):
+class GetListTweetsArgs(NoCacheArgs):
     """Arguments for getting list tweets."""
 
     list_id: str = Field(description="Twitter list ID")
     max_results: int = Field(default=20, ge=1, le=100, description="Max results (1-100)")
 
 
-class GetCommunityDetailArgs(BaseModel):
+class GetCommunityDetailArgs(NoCacheArgs):
     """Arguments for getting community detail."""
 
     community_id: str = Field(description="Twitter community ID")
 
 
-class SearchCommunitiesArgs(BaseModel):
+class SearchCommunitiesArgs(NoCacheArgs):
     """Arguments for searching communities."""
 
     query: str = Field(description="Search query for communities")
 
 
-class SearchGoogleArgs(BaseModel):
+class SearchGoogleArgs(NoCacheArgs):
     """Arguments for a Google web search."""
 
     q: str = Field(description="Search query (supports Google operators like site:, intitle:)")
@@ -296,7 +306,7 @@ class SearchGoogleArgs(BaseModel):
     mode: str | None = Field(default=None, description="full or fast.")
 
 
-class GetAutoscout24ListingArgs(BaseModel):
+class GetAutoscout24ListingArgs(NoCacheArgs):
     """Arguments for AutoScout24 listing detail: exactly one url or listing_id."""
 
     url: str | None = Field(
@@ -323,7 +333,7 @@ class GetAutoscout24ListingArgs(BaseModel):
         return self
 
 
-class GetGitHubRepositoryArgs(BaseModel):
+class GetGitHubRepositoryArgs(NoCacheArgs):
     """Arguments for public GitHub repository detail."""
 
     owner: str = Field(
@@ -347,7 +357,7 @@ class GetGitHubRepositoryArgs(BaseModel):
         return value
 
 
-class SearchYelpBusinessesArgs(BaseModel):
+class SearchYelpBusinessesArgs(NoCacheArgs):
     """Arguments for a Yelp business search."""
 
     location: str = Field(
@@ -387,7 +397,7 @@ class SearchYelpBusinessesArgs(BaseModel):
     )
 
 
-class SearchMarketplaceArgs(BaseModel):
+class SearchMarketplaceArgs(NoCacheArgs):
     """Account-free public Marketplace search with verified filters."""
 
     query: str = Field(min_length=1)
@@ -402,7 +412,7 @@ class SearchMarketplaceArgs(BaseModel):
     after: str | None = None
 
 
-class GetMarketplaceItemArgs(BaseModel):
+class GetMarketplaceItemArgs(NoCacheArgs):
     """A public listing ID from Marketplace search."""
 
     item_id: str = Field(pattern=r"^[0-9]{1,32}$")
@@ -649,6 +659,9 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent] |
     """Handle tool calls."""
     try:
         client = await _get_client()
+        if NoCacheArgs.model_validate(arguments).no_cache:
+            # Sends Cache-Control: no-cache on every request this tool makes.
+            client = client.with_options(no_cache=True)
         result: Any = None
         args: Any  # each branch validates into its own args model
 
@@ -813,7 +826,9 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent] |
 
         elif name == "facebook_marketplace_search":
             args = SearchMarketplaceArgs(**arguments)
-            result = await client.facebook.search_marketplace(**args.model_dump(exclude_none=True))
+            result = await client.facebook.search_marketplace(
+                **args.model_dump(exclude_none=True, exclude={"no_cache"})
+            )
 
         elif name == "facebook_marketplace_item":
             args = GetMarketplaceItemArgs(**arguments)
