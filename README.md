@@ -31,6 +31,7 @@ ScrapeBadger MCP Server is a [Model Context Protocol (MCP)](https://modelcontext
 - Explore Twitter lists and communities
 - Search for places and geolocated content
 - Search Google and read the structured results page, including People Also Ask answers
+- Ask Google AI Mode, optionally as if the user were in a given city or district
 - Search Yelp businesses in the US and Canada in Yelp's own order, with ads kept separate
 - Read a public GitHub repository: README, root files, latest commit and statistics
 - Read a full AutoScout24 vehicle listing: specifications, equipment, photos and seller data
@@ -145,6 +146,8 @@ Once configured, simply ask your AI to fetch Twitter data:
 
 > "Search Google for 'are noise cancelling headphones worth it' and answer the People Also Ask questions"
 
+> "Ask Google AI Mode for the best coffee near me, as if I were in Wonju, South Korea"
+
 ---
 
 ## Available Tools
@@ -202,6 +205,7 @@ The MCP server provides 17 tools organized into categories:
 | Tool | Description |
 |------|-------------|
 | `search_google` | Search Google (`/v1/google/search`): organic results, ads, knowledge graph, AI Overview, People Also Ask, shopping results, perspectives, discussions and forums, short videos, related searches |
+| `google_ai_mode_search` | Google AI Mode (`/v1/google/ai-mode/search`): the generative answer as `markdown` and `text_blocks` with its cited `references`, optionally localised with `location`, `lat` + `lon` or `uule` |
 
 `search_google` takes `q`, `gl`, `hl`, `start`, `location`, `ai_overview` and
 `expand_related_questions`. Google loads a People Also Ask answer only when the
@@ -212,6 +216,20 @@ then carries `text_blocks` and `references`. Each answered question costs one
 more search (credits = 20 x (1 + answered)), and a question whose answer does
 not come back is not billed. See the
 [Google web search docs](https://docs.scrapebadger.com/api-reference/google/google-search/google-web-search).
+
+`google_ai_mode_search` takes `q`, `gl`, `hl`, `include_html` (default `false`
+here: `markdown` and `text_blocks` carry the whole answer) and one of `location`,
+`uule`, or `lat` + `lon`. A location answers "near me" and other local questions
+as if the user were in that place, down to the city or district, whatever the
+exit IP: `location` is a Google canonical name such as
+`Wonju-si,Gangwon-do,South Korea`, a criteria ID such as `1009889`, or an
+unambiguous short name. With `location` and no `gl`, `gl` becomes the location's
+country; `gl` itself is Google's market and does not choose the exit country.
+Located answers echo a `location` object. Unknown or ambiguous names are
+rejected with canonical candidates, and a located request that cannot be
+answered right now fails unbilled; retry it. Location targeting needs
+`scrapebadger` SDK 0.77.0 or later. See the
+[Google AI Mode docs](https://docs.scrapebadger.com/api-reference/google/google-ai-mode/google-ai-mode-search).
 
 ### Yelp, GitHub repository and AutoScout24 listing tools
 

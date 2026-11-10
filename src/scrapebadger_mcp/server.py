@@ -1,7 +1,7 @@
 """ScrapeBadger MCP Server.
 
 This module implements the Model Context Protocol (MCP) server for ScrapeBadger,
-providing AI agents with access to Twitter/X scraping, Google Search, AutoScout24
+providing AI agents with access to Twitter/X scraping, Google Search and AI Mode, AutoScout24
 listing detail, GitHub repository detail and Yelp business search.
 """
 
@@ -37,6 +37,7 @@ TOOL_PATHS = {
     "get_twitter_community_detail": "/v1/twitter/communities/{community_id}",
     "search_twitter_communities": "/v1/twitter/communities/search",
     "search_google": "/v1/google/search",
+    "google_ai_mode_search": "/v1/google/ai-mode/search",
     "autoscout24_get_listing": "/v1/autoscout24/listing",
     "github_get_repository": "/v1/github/repositories/{owner}/{repo}",
     "yelp_search_businesses": "/v1/yelp/search",
@@ -295,6 +296,66 @@ class SearchGoogleArgs(BaseModel):
     )
     num: int | None = Field(default=None, description="Results per page.")
     mode: str | None = Field(default=None, description="full or fast.")
+
+
+class GoogleAiModeSearchArgs(BaseModel):
+    """Arguments for a Google AI Mode answer, optionally localised to one place."""
+
+    q: str = Field(min_length=1, description="The question or prompt to ask Google AI Mode.")
+    gl: str | None = Field(
+        default=None,
+        description=(
+            "Google country (market) code, e.g. us, kr, de. It shapes the answer; it does not "
+            "choose the exit IP's country. Omit it to get us, or the location's country when "
+            "location is set."
+        ),
+    )
+    hl: str = Field(default="en", description="Answer language code (e.g. en, ko, de).")
+    include_html: bool = Field(
+        default=False,
+        description=(
+            "Also return the raw answer_html (often 100s of KB). Leave false: markdown and "
+            "text_blocks carry the whole answer."
+        ),
+    )
+    location: str | None = Field(
+        default=None,
+        description=(
+            "Answer as if the user were here, for 'near me' and other local questions: a Google "
+            "canonical location name (e.g. 'Wonju-si,Gangwon-do,South Korea'), a Google criteria "
+            "ID (e.g. '1009889'), or an unambiguous short name within gl. Use only one of "
+            "location, uule, or lat+lon. An unknown or ambiguous name is rejected; the error "
+            "lists canonical candidates to retry with."
+        ),
+    )
+    uule: str | None = Field(
+        default=None,
+        description=(
+            "A Google UULE in its w+ (canonical name) or j+ (coordinates) form. Prefer "
+            "location or lat+lon. Use only one of location, uule, or lat+lon."
+        ),
+    )
+    lat: float | None = Field(
+        default=None,
+        ge=-90,
+        le=90,
+        description="Latitude of the user's location; send together with lon.",
+    )
+    lon: float | None = Field(
+        default=None,
+        ge=-180,
+        le=180,
+        description="Longitude of the user's location; send together with lat.",
+    )
+
+    @model_validator(mode="after")
+    def _one_location(self) -> GoogleAiModeSearchArgs:
+        if (self.lat is None) != (self.lon is None):
+            raise ValueError("lat and lon must be supplied together")
+        given = [self.location is not None, self.uule is not None, self.lat is not None]
+        if sum(given) > 1:
+            raise ValueError("Use only one of location, uule, or lat/lon")
+        return self
 
 
 class GetAutoscout24ListingArgs(BaseModel):
@@ -567,6 +628,19 @@ async def list_tools() -> list[Tool]:
             ),
             inputSchema=SearchGoogleArgs.model_json_schema(),
         ),
+        Tool(
+            name="google_ai_mode_search",
+            description=(
+                "Ask Google AI Mode (Google's generative AI answer) and get the answer as "
+                "markdown and structured text_blocks with the sources it cited. To answer "
+                "'near me' or other local questions for a specific place, pass ONE of location "
+                "(a Google location name or criteria ID), lat+lon, or uule: the answer is "
+                "localised to that city or district, whatever the exit IP. With location and "
+                "no gl, gl becomes the location's country. Located answers echo a location "
+                "object. Failed requests (503) are not billed; retry them."
+            ),
+            inputSchema=GoogleAiModeSearchArgs.model_json_schema(),
+        ),
         # Dedicated APIs (SCR-564, SCR-567, SCR-569)
         Tool(
             name="autoscout24_get_listing",
@@ -786,6 +860,12 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent] |
         elif name == "search_google":
             args = SearchGoogleArgs(**arguments)
             result = await client.google.search.search(**args.model_dump(exclude_none=True))
+
+        elif name == "google_ai_mode_search":
+            args = GoogleAiModeSearchArgs(**arguments)
+            # location/uule/lat/lon need scrapebadger>=0.77.0; an unset gl is left out so
+            # the API can take the location's country.
+            result = await client.google.ai_mode.search(**args.model_dump(exclude_none=True))
 
         # Dedicated APIs: raw response dicts, every native field kept
         elif name == "autoscout24_get_listing":
