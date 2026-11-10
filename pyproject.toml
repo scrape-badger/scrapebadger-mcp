@@ -1,6 +1,6 @@
 [project]
 name = "scrapebadger-mcp"
-version = "0.6.2"
+version = "0.7.0"
 description = "MCP server for ScrapeBadger - Twitter/X, Google Search, Yelp, GitHub repositories and AutoScout24 listings for AI agents"
 readme = "README.md"
 license = { text = "MIT" }

@@ -82,7 +82,7 @@ class TestListTools:
         tools = await list_tools()
 
         # Check we have the expected number of tools
-        assert len(tools) == 23
+        assert len(tools) == 24
 
         # Check specific tools exist
         tool_names = [t.name for t in tools]
