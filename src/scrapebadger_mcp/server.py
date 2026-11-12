@@ -44,6 +44,8 @@ TOOL_PATHS = {
     "yelp_list_markets": "/v1/yelp/markets",
     "facebook_marketplace_search": "/v1/facebook/marketplace/search",
     "facebook_marketplace_item": "/v1/facebook/marketplace/item/{item_id}",
+    "linkedin_get_profile": "/v1/linkedin/profiles/{public_id}",
+    "linkedin_get_full_profile": "/v1/linkedin/profiles/{public_id}/full",
 }
 
 # Initialize MCP server
@@ -474,6 +476,13 @@ class ListYelpMarketsArgs(BaseModel):
     """The Yelp markets list takes no arguments."""
 
 
+class GetLinkedInProfileArgs(BaseModel):
+    """A LinkedIn public vanity id and optional residential-proxy country."""
+
+    public_id: str = Field(min_length=1)
+    country: str = "us"
+
+
 # =============================================================================
 # Tool Handlers
 # =============================================================================
@@ -616,6 +625,22 @@ async def list_tools() -> list[Tool]:
                 "communities with names, descriptions, and member counts."
             ),
             inputSchema=SearchCommunitiesArgs.model_json_schema(),
+        ),
+        Tool(
+            name="linkedin_get_profile",
+            description=(
+                "Get a public LinkedIn profile with roles, education, public DOM verticals, "
+                "recent posts and articles when LinkedIn exposes them."
+            ),
+            inputSchema=GetLinkedInProfileArgs.model_json_schema(),
+        ),
+        Tool(
+            name="linkedin_get_full_profile",
+            description=(
+                "Get a full LinkedIn profile through the separately authenticated projection, "
+                "with paginated positions and richer verticals when visible to the server session."
+            ),
+            inputSchema=GetLinkedInProfileArgs.model_json_schema(),
         ),
         # Google tools
         Tool(
@@ -855,6 +880,14 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent] |
                 "communities": [_serialize_model(c) for c in communities_response.data],
                 "count": len(communities_response.data),
             }
+
+        elif name == "linkedin_get_profile":
+            args = GetLinkedInProfileArgs(**arguments)
+            result = await client.linkedin.get_profile(args.public_id, country=args.country)
+
+        elif name == "linkedin_get_full_profile":
+            args = GetLinkedInProfileArgs(**arguments)
+            result = await client.linkedin.get_full_profile(args.public_id, country=args.country)
 
         # Google tools
         elif name == "search_google":
