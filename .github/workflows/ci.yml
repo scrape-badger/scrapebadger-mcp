@@ -19,7 +19,7 @@ jobs:
         run: uv python install 3.12
 
       - name: Install dependencies
-        run: uv sync --extra dev
+        run: uv sync --extra dev --refresh
 
       - name: Run linter
         run: uv run ruff check src/ tests/
@@ -46,7 +46,7 @@ jobs:
         run: uv python install ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: uv sync --extra dev
+        run: uv sync --extra dev --refresh
 
       - name: Run tests
         run: uv run pytest tests/ -v

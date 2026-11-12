@@ -192,7 +192,6 @@ async def test_lifecycle_hides_and_marks_tools(monkeypatch):
     assert await list_tools() == []
 
 
-
 @pytest.mark.asyncio
 async def test_linkedin_full_profile_tool_dispatch() -> None:
     client = MagicMock()
