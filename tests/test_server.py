@@ -82,7 +82,7 @@ class TestListTools:
         tools = await list_tools()
 
         # Check we have the expected number of tools
-        assert len(tools) == 24
+        assert len(tools) == 26
 
         # Check specific tools exist
         tool_names = [t.name for t in tools]
@@ -190,3 +190,17 @@ async def test_lifecycle_hides_and_marks_tools(monkeypatch):
     assert tools[0].description.startswith("Deprecated.")
     monkeypatch.setattr(ScrapeBadger, "endpoints", AsyncMock(return_value=[]))
     assert await list_tools() == []
+
+
+
+@pytest.mark.asyncio
+async def test_linkedin_full_profile_tool_dispatch() -> None:
+    client = MagicMock()
+    client.linkedin.get_full_profile = AsyncMock(
+        return_value={"public_id": "williamhgates", "access_scope": "authenticated"}
+    )
+    with patch("scrapebadger_mcp.server._get_client", AsyncMock(return_value=client)):
+        out = await call_tool("linkedin_get_full_profile", {"public_id": "williamhgates"})
+
+    client.linkedin.get_full_profile.assert_awaited_once_with("williamhgates", country="us")
+    assert json.loads(out[0].text)["access_scope"] == "authenticated"
