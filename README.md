@@ -35,6 +35,7 @@ ScrapeBadger MCP Server is a [Model Context Protocol (MCP)](https://modelcontext
 - Search Yelp businesses in the US and Canada in Yelp's own order, with ads kept separate
 - Read a public GitHub repository: README, root files, latest commit and statistics
 - Read a full AutoScout24 vehicle listing: specifications, equipment, photos and seller data
+- Ask Grok for real answers with web citations and X post references, multi-turn history, assistant modes and brand-visibility analysis
 
 ## Quick Start
 
