@@ -46,6 +46,10 @@ TOOL_PATHS = {
     "facebook_marketplace_item": "/v1/facebook/marketplace/item/{item_id}",
     "linkedin_get_profile": "/v1/linkedin/profiles/{public_id}",
     "linkedin_get_full_profile": "/v1/linkedin/profiles/{public_id}/full",
+    "grok_ask": "/v1/grok/ask",
+    "grok_brand_visibility": "/v1/grok/brand-visibility",
+    "grok_get_conversation": "/v1/grok/conversations/{conversation_id}",
+    "grok_list_models": "/v1/grok/models",
 }
 
 # Initialize MCP server
@@ -483,6 +487,30 @@ class GetLinkedInProfileArgs(BaseModel):
     country: str = "us"
 
 
+class GrokAskArgs(BaseModel):
+    prompt: str = Field(min_length=1, max_length=4000)
+    conversation_id: str | None = Field(default=None, max_length=64)
+    mode: Literal["auto", "fast", "expert"] = "auto"
+    web_search: Literal["auto", "force", "off"] = "auto"
+
+
+class GrokBrandVisibilityArgs(BaseModel):
+    prompt: str = Field(min_length=1, max_length=4000)
+    brand: str = Field(min_length=1, max_length=200)
+    competitors: list[str] | None = Field(default=None, max_length=10)
+    brand_domain: str | None = Field(default=None, max_length=255)
+    mode: Literal["auto", "fast", "expert"] = "auto"
+    web_search: Literal["auto", "force", "off"] = "force"
+
+
+class GrokConversationArgs(BaseModel):
+    conversation_id: str = Field(min_length=1, max_length=64)
+
+
+class GrokModelsArgs(BaseModel):
+    """The Grok model list takes no arguments."""
+
+
 # =============================================================================
 # Tool Handlers
 # =============================================================================
@@ -712,6 +740,38 @@ async def list_tools() -> list[Tool]:
             inputSchema=GetMarketplaceItemArgs.model_json_schema(),
         ),
         Tool(
+            name="grok_ask",
+            description=(
+                "Ask the real Grok assistant and get structured answers with web citations, "
+                "X post references, tool usage and follow-up suggestions. Pass the complete "
+                "conversation_id from an earlier response to retain context. "
+                "mode: auto, fast or expert; web_search: auto, force or off. 20 credits."
+            ),
+            inputSchema=GrokAskArgs.model_json_schema(),
+        ),
+        Tool(
+            name="grok_brand_visibility",
+            description=(
+                "Measure a brand in a real Grok answer: mentions, share of voice, position, "
+                "competitor breakdown and citation rank, with the full answer and sources. "
+                "25 credits."
+            ),
+            inputSchema=GrokBrandVisibilityArgs.model_json_schema(),
+        ),
+        Tool(
+            name="grok_get_conversation",
+            description=(
+                "Fetch chronological user and assistant messages from an existing Grok "
+                "conversation, including Unix and ISO timestamps. 3 credits."
+            ),
+            inputSchema=GrokConversationArgs.model_json_schema(),
+        ),
+        Tool(
+            name="grok_list_models",
+            description="List Grok's auto, fast and expert assistant modes. 1 credit.",
+            inputSchema=GrokModelsArgs.model_json_schema(),
+        ),
+        Tool(
             name="yelp_list_markets",
             description="List the Yelp sites this API searches (us, ca). Free.",
             inputSchema=ListYelpMarketsArgs.model_json_schema(),
@@ -880,6 +940,33 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent] |
                 "communities": [_serialize_model(c) for c in communities_response.data],
                 "count": len(communities_response.data),
             }
+
+        elif name == "grok_ask":
+            args = GrokAskArgs(**arguments)
+            result = await client.grok.ask_grok_a_question(
+                prompt=args.prompt,
+                conversation_id=args.conversation_id,
+                mode=args.mode,
+                web_search=args.web_search,
+            )
+
+        elif name == "grok_brand_visibility":
+            args = GrokBrandVisibilityArgs(**arguments)
+            result = await client.grok.measure_brand_visibility_in_grok(
+                prompt=args.prompt,
+                brand=args.brand,
+                competitors=args.competitors,
+                brand_domain=args.brand_domain,
+                mode=args.mode,
+                web_search=args.web_search,
+            )
+
+        elif name == "grok_get_conversation":
+            args = GrokConversationArgs(**arguments)
+            result = await client.grok.get_a_grok_conversation(args.conversation_id)
+
+        elif name == "grok_list_models":
+            result = await client.grok.list_grok_assistant_modes()
 
         elif name == "linkedin_get_profile":
             args = GetLinkedInProfileArgs(**arguments)

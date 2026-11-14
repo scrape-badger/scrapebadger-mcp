@@ -57,7 +57,7 @@ def test_paths_are_the_api_operations() -> None:
 
 async def test_inventory_has_every_tool_once() -> None:
     names = [tool.name for tool in await list_tools()]
-    assert len(names) == len(set(names)) == len(TOOL_PATHS) == 26
+    assert len(names) == len(set(names)) == len(TOOL_PATHS) == 30
     assert set(DEDICATED) <= set(names)
 
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.9.0] - 2026-11-14
+
+- Add four Grok tools: `grok_ask`, `grok_brand_visibility`, `grok_get_conversation`, and `grok_list_models`, with web citations, X post references, multi-turn conversations, and brand analysis. Requires ScrapeBadger Python SDK 0.79.0. (SCR-623)
+
 ## [0.7.0] - 2026-11-10
 
 - New `google_ai_mode_search` tool for Google AI Mode (`/v1/google/ai-mode/search`): the generative answer as `markdown` and `text_blocks` with cited `references`. `include_html` defaults to `false` here to keep the raw `answer_html` out of the agent's context.
