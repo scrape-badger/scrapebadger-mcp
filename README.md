@@ -207,6 +207,7 @@ The MCP server provides 17 tools organized into categories:
 |------|-------------|
 | `search_google` | Search Google (`/v1/google/search`): organic results, ads, knowledge graph, AI Overview, People Also Ask, shopping results, perspectives, discussions and forums, short videos, related searches |
 | `google_ai_mode_search` | Google AI Mode (`/v1/google/ai-mode/search`): the generative answer as `markdown` and `text_blocks` with its cited `references`, optionally localised with `location`, `lat` + `lon` or `uule` |
+| `google_resolve_links` | Real URLs for Google results (`POST /v1/google/resolve`): send the `search_google` organic results that carry a `link_token`, 1 to 25 per call, and get each row back resolved, not ready or failed. No credits |
 
 `search_google` takes `q`, `gl`, `hl`, `start`, `location`, `ai_overview` and
 `expand_related_questions`. Google loads a People Also Ask answer only when the
@@ -217,6 +218,28 @@ then carries `text_blocks` and `references`. Each answered question costs one
 more search (credits = 20 x (1 + answered)), and a question whose answer does
 not come back is not billed. See the
 [Google web search docs](https://docs.scrapebadger.com/api-reference/google/google-search/google-web-search).
+
+Google can return a result's `link` as a redirect
+(`https://www.google.com/goto?url=...`) and paces how fast the links of one
+result page can be followed. Such an organic result carries `link_token` and
+`retry_after_seconds` (0 = can be resolved right away); both are null when
+`link` is already the real URL. Pass the results that carry a `link_token` to
+`google_resolve_links`, 1 to 25 per call. Other fields are returned unchanged
+and the rows come back in the order sent, each as one of:
+
+- resolved: `link` is the result's own URL and the row has no `link_token`.
+- not ready: the row has `link_token` and `retry_after_seconds` (1 or more).
+  Wait that many seconds, then send the row again with its latest `link_token`,
+  which can differ from the one sent.
+- failed: the row has `link_token` and `error`. Do not send it again.
+
+A token sent early is not an error: the row comes back not ready with the wait
+that is left. The response's own `retry_after_seconds` is the shortest wait
+among the not-ready rows, or null when no row is waiting. One call makes one
+request and does not wait. Polling this way, all ten links of a page are usually
+known 45 to 70 seconds after the search; once the result page is about 160
+seconds old, one call returns every remaining link. The tool costs no credits
+and needs `scrapebadger` SDK 0.82.0 or later.
 
 `google_ai_mode_search` takes `q`, `gl`, `hl`, `include_html` (default `false`
 here: `markdown` and `text_blocks` carry the whole answer) and one of `location`,

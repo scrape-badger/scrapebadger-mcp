@@ -38,6 +38,7 @@ TOOL_PATHS = {
     "search_twitter_communities": "/v1/twitter/communities/search",
     "search_google": "/v1/google/search",
     "google_ai_mode_search": "/v1/google/ai-mode/search",
+    "google_resolve_links": "/v1/google/resolve",
     "autoscout24_get_listing": "/v1/autoscout24/listing",
     "github_get_repository": "/v1/github/repositories/{owner}/{repo}",
     "yelp_search_businesses": "/v1/yelp/search",
@@ -51,6 +52,9 @@ TOOL_PATHS = {
     "grok_get_conversation": "/v1/grok/conversations/{conversation_id}",
     "grok_list_models": "/v1/grok/models",
 }
+
+# HTTP method of a tool's endpoint in the live catalog. A tool not named here uses GET.
+TOOL_METHODS = {"google_resolve_links": "POST"}
 
 # Initialize MCP server
 server = Server("scrapebadger")
@@ -362,6 +366,45 @@ class GoogleAiModeSearchArgs(BaseModel):
         if sum(given) > 1:
             raise ValueError("Use only one of location, uule, or lat/lon")
         return self
+
+
+class GoogleResolveLinksArgs(BaseModel):
+    """Arguments for getting the real URLs of Google result links."""
+
+    results: list[dict[str, Any]] = Field(
+        min_length=1,
+        max_length=25,
+        description=(
+            "1 to 25 result rows that each have a link_token. Organic results from "
+            "search_google can be sent as they are: other fields are returned unchanged."
+        ),
+        json_schema_extra={
+            "items": {
+                "type": "object",
+                "properties": {
+                    "link_token": {
+                        "type": "string",
+                        "minLength": 1,
+                        "description": (
+                            "The row's latest link_token, from search_google or from an "
+                            "earlier call of this tool."
+                        ),
+                    }
+                },
+                "required": ["link_token"],
+                "additionalProperties": True,
+            }
+        },
+    )
+
+    @field_validator("results")
+    @classmethod
+    def _rows_have_a_link_token(cls, rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        for row in rows:
+            token = row.get("link_token")
+            if not isinstance(token, str) or not token:
+                raise ValueError("every row needs a non-empty string link_token")
+        return rows
 
 
 class GetAutoscout24ListingArgs(BaseModel):
@@ -677,7 +720,10 @@ async def list_tools() -> list[Tool]:
                 "Search Google and get the structured results page: organic results, ads, "
                 "knowledge graph, AI Overview, People Also Ask, shopping results, "
                 "perspectives, discussions and forums, short videos and related searches. "
-                "Set expand_related_questions to also get the People Also Ask answers."
+                "Set expand_related_questions to also get the People Also Ask answers. "
+                "Organic results whose link is a google.com/goto redirect carry link_token "
+                "and retry_after_seconds; pass them to google_resolve_links to get the "
+                "real URLs."
             ),
             inputSchema=SearchGoogleArgs.model_json_schema(),
         ),
@@ -693,6 +739,26 @@ async def list_tools() -> list[Tool]:
                 "object. Failed requests (503) are not billed; retry them."
             ),
             inputSchema=GoogleAiModeSearchArgs.model_json_schema(),
+        ),
+        Tool(
+            name="google_resolve_links",
+            description=(
+                "Get the real URLs of Google results whose link is a google.com/goto "
+                "redirect. Send the organic results of search_google that carry a "
+                "link_token, 1 to 25 per call; other fields come back unchanged. Rows come "
+                "back in the order sent. A resolved row has the result's own URL in link "
+                "and no link_token. A not-ready row has link_token and retry_after_seconds "
+                "(1 or more): wait that many seconds, then send the row again with its "
+                "latest link_token, which can differ from the one sent. A failed row has "
+                "link_token and error: do not send it again. A token sent early is not an "
+                "error; the row comes back not ready with the wait that is left. The "
+                "top-level retry_after_seconds is the shortest wait among the not-ready "
+                "rows, or null when no row is waiting. One call makes one request and does "
+                "not wait. Polling this way, all ten links of a page are usually known 45 "
+                "to 70 seconds after the search; once the result page is about 160 seconds "
+                "old, one call returns every remaining link. Costs no credits."
+            ),
+            inputSchema=GoogleResolveLinksArgs.model_json_schema(),
         ),
         # Dedicated APIs (SCR-564, SCR-567, SCR-569)
         Tool(
@@ -785,11 +851,12 @@ async def list_tools() -> list[Tool]:
     def normalize(path: str) -> str:
         return re.sub(r"\{[^}]+\}", "{}", path).rstrip("/")
 
-    states = {normalize(row["path"]): row["status"] for row in entries if row["method"] == "GET"}
+    # The catalog has one row per HTTP method and path: match each tool on both.
+    states = {(row["method"], normalize(row["path"])): row["status"] for row in entries}
     visible = []
     for tool in tools:
-        path = TOOL_PATHS[tool.name]
-        state = states.get(normalize(path))
+        method = TOOL_METHODS.get(tool.name, "GET")
+        state = states.get((method, normalize(TOOL_PATHS[tool.name])))
         if state is None:
             continue
         if state != "active":
@@ -986,6 +1053,11 @@ async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent] |
             # location/uule/lat/lon need scrapebadger>=0.77.0; an unset gl is left out so
             # the API can take the location's country.
             result = await client.google.ai_mode.search(**args.model_dump(exclude_none=True))
+
+        elif name == "google_resolve_links":
+            args = GoogleResolveLinksArgs(**arguments)
+            # One request per call: the caller waits retry_after_seconds and calls again.
+            result = await client.google.search.resolve(args.results)
 
         # Dedicated APIs: raw response dicts, every native field kept
         elif name == "autoscout24_get_listing":

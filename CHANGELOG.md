@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.0] - 2026-11-23
+
+- New `google_resolve_links` tool (`POST /v1/google/resolve`, no credits): get the real URLs of `search_google` organic results whose `link` is a `google.com/goto` redirect. Send the results that carry a `link_token`, 1 to 25 per call; other fields are returned unchanged. Each row comes back resolved (`link` is the result's own URL; no `link_token`), not ready (`link_token` and `retry_after_seconds` of 1 or more: wait that long, then send the row's latest `link_token` again) or failed (`link_token` and `error`: do not send it again). One call makes one request and does not wait.
+- The `search_google` description now says that such results carry `link_token` and `retry_after_seconds`.
+- Tool listing matches each tool against the live endpoint catalog by HTTP method and path, so a tool on a POST-only endpoint can be listed. The other tools are matched on their GET rows, as before.
+- Requires ScrapeBadger Python SDK 0.82.0 (`scrapebadger>=0.82.0`). (SCR-667)
+
 ## [0.9.0] - 2026-11-14
 
 - Add four Grok tools: `grok_ask`, `grok_brand_visibility`, `grok_get_conversation`, and `grok_list_models`, with web citations, X post references, multi-turn conversations, and brand analysis. Requires ScrapeBadger Python SDK 0.79.0. (SCR-623)
