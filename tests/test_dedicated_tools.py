@@ -17,7 +17,7 @@ from mcp.shared.memory import create_connected_server_and_client_session
 from mcp.types import CallToolResult
 from scrapebadger import ScrapeBadger
 
-from scrapebadger_mcp.server import TOOL_PATHS, call_tool, list_tools, server
+from scrapebadger_mcp.server import TOOL_METHODS, TOOL_PATHS, call_tool, list_tools, server
 
 DEDICATED = {
     "autoscout24_get_listing": "/v1/autoscout24/listing",
@@ -26,13 +26,20 @@ DEDICATED = {
     "yelp_list_markets": "/v1/yelp/markets",
 }
 LISTING_ID = "26ba8d7b-f8b3-4a08-8b03-b23574f1583d"
+# Paths the catalog lists under a method other than GET.
+METHODS = {TOOL_PATHS[name]: method for name, method in TOOL_METHODS.items()}
 
 
 def catalog(rows: dict[str, str]) -> AsyncMock:
     """The live endpoint catalog as the API serves it (FastAPI path templates)."""
     return AsyncMock(
         return_value=[
-            {"method": "GET", "path": path, "api": path.split("/")[2], "status": status}
+            {
+                "method": METHODS.get(path, "GET"),
+                "path": path,
+                "api": path.split("/")[2],
+                "status": status,
+            }
             for path, status in rows.items()
         ]
     )
@@ -57,7 +64,7 @@ def test_paths_are_the_api_operations() -> None:
 
 async def test_inventory_has_every_tool_once() -> None:
     names = [tool.name for tool in await list_tools()]
-    assert len(names) == len(set(names)) == len(TOOL_PATHS) == 30
+    assert len(names) == len(set(names)) == len(TOOL_PATHS) == 31
     assert set(DEDICATED) <= set(names)
 
 
