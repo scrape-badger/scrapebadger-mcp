@@ -14,56 +14,98 @@
 </p>
 
 <p align="center">
-  <strong>Give your AI agents access to Twitter/X data, Google Search, Yelp businesses, GitHub repositories and AutoScout24 listings via the Model Context Protocol</strong>
+  <strong>Give AI agents ScrapeBadger's scraping APIs through the Model Context Protocol: search engines, social media, e-commerce, real estate, AI answer engines and any web page.</strong>
 </p>
 
 ---
 
 ## What is this?
 
-ScrapeBadger MCP Server is a [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server that enables AI assistants like **Claude**, **ChatGPT**, **Cursor**, **Windsurf**, and other MCP-compatible clients to access Twitter/X data, Google Search results, Yelp business search, GitHub repository detail and AutoScout24 listing detail through the [ScrapeBadger API](https://scrapebadger.com).
+[ScrapeBadger](https://scrapebadger.com) is a web scraping API. This repository is the official
+[Model Context Protocol (MCP)](https://modelcontextprotocol.io) server for it, so that Claude,
+ChatGPT, Cursor, Windsurf, VS Code and other MCP clients can call ScrapeBadger as tools.
 
-**With this MCP server, your AI can:**
+There are two ways to use it:
 
-- Get Twitter user profiles, followers, and following lists
-- Search and retrieve tweets
-- Access trending topics globally or by location
-- Explore Twitter lists and communities
-- Search for places and geolocated content
-- Search Google and read the structured results page, including People Also Ask answers
-- Ask Google AI Mode, optionally as if the user were in a given city or district
-- Search Yelp businesses in the US and Canada in Yelp's own order, with ads kept separate
-- Read a public GitHub repository: README, root files, latest commit and statistics
-- Read a full AutoScout24 vehicle listing: specifications, equipment, photos and seller data
-- Ask Grok for real answers with web citations and X post references, multi-turn history, assistant modes and brand-visibility analysis
+| | Hosted server | Local server (this package) |
+|---|---|---|
+| Where | `https://mcp.scrapebadger.com/mcp` | `uvx scrapebadger-mcp`, `pip install scrapebadger-mcp` or Docker |
+| Transport | Streamable HTTP | stdio |
+| Sign-in | OAuth with your ScrapeBadger account, or an API key | `SCRAPEBADGER_API_KEY` |
+| Tools | Every ScrapeBadger API: 500+ tools across 40+ products | 31 tools: Twitter/X, Google, LinkedIn, Grok, Facebook Marketplace, Yelp, GitHub, AutoScout24 |
+| Install | None | Python 3.10+ or Docker |
 
-## Quick Start
+Both use the same credits as the REST API. Get an API key, or sign in with OAuth, at
+[scrapebadger.com](https://scrapebadger.com/auth/signup?utm_source=mcp-readme&utm_medium=referral).
 
-### 1. Get Your API Key
+## Hosted server (recommended)
 
-Sign up at [scrapebadger.com](https://scrapebadger.com/auth/signup?utm_source=mcp-readme&utm_medium=referral) and get your API key.
+The hosted server at `https://mcp.scrapebadger.com/mcp` reaches every ScrapeBadger API,
+including Twitter/X, Instagram, Facebook, LinkedIn, TikTok, YouTube, Reddit, Google (Search,
+AI Mode, Maps, News, Shopping, Jobs, Hotels, Scholar and more), Bing, Yahoo, Baidu, DuckDuckGo,
+Amazon, eBay, Walmart, Target, Etsy, AliExpress, Vinted, Zillow, Redfin, Idealista, ChatGPT,
+Perplexity, Gemini, Copilot, Grok and the Web Scraping API for any URL. Nothing to install.
 
-### 2. Install
+**Claude (claude.ai and Claude Desktop):** go to **Settings > Connectors > Add custom
+connector**, enter `https://mcp.scrapebadger.com/mcp`, then sign in and approve. No API key
+needed.
+
+**Claude Code:**
 
 ```bash
-# Using uvx (recommended - no installation needed)
+claude mcp add --transport http scrapebadger https://mcp.scrapebadger.com/mcp
+```
+
+The first connection opens the ScrapeBadger sign-in in your browser (OAuth).
+
+**Cursor and other clients that take a URL:** clients that support MCP OAuth sign in with
+just the URL. Otherwise send your API key as a Bearer header (Windsurf names the URL field
+`serverUrl`):
+
+```json
+{
+  "mcpServers": {
+    "scrapebadger": {
+      "url": "https://mcp.scrapebadger.com/mcp",
+      "headers": {
+        "Authorization": "Bearer YOUR_API_KEY"
+      }
+    }
+  }
+}
+```
+
+By default the hosted server lists a few free helper tools (`search_endpoints`,
+`describe_endpoint`, `call_endpoint` and others) that reach every endpoint, which keeps your
+agent's context small. Add `?apis=google,amazon` to the URL to list those APIs' tools
+directly, or `?apis=all` for every tool. See the
+[MCP docs](https://docs.scrapebadger.com/mcp/overview) and the
+[client guides](https://docs.scrapebadger.com/mcp/integrations/claude-desktop).
+
+## Local server (this package)
+
+The local server runs on your machine over stdio and exposes the 31 tools listed under
+[Available tools](#available-tools). It needs an API key from your
+[ScrapeBadger dashboard](https://scrapebadger.com/dashboard/api-keys).
+
+### Install
+
+```bash
+# Using uvx (recommended, nothing to install)
 uvx scrapebadger-mcp
 
-# Or install globally with pip
+# Or with pip
 pip install scrapebadger-mcp
 
-# Or with uv
+# Or as a uv tool
 uv tool install scrapebadger-mcp
 ```
 
-### 3. Configure Your AI Client
+### Configure your MCP client
 
-#### Claude Desktop
-
-Add to your Claude Desktop configuration file:
-
-**macOS:** `~/Library/Application Support/Claude/claude_desktop_config.json`
-**Windows:** `%APPDATA%\Claude\claude_desktop_config.json`
+Claude Desktop (`~/Library/Application Support/Claude/claude_desktop_config.json` on macOS,
+`%APPDATA%\Claude\claude_desktop_config.json` on Windows), Cursor (`.cursor/mcp.json`),
+Windsurf and most other clients:
 
 ```json
 {
@@ -79,14 +121,13 @@ Add to your Claude Desktop configuration file:
 }
 ```
 
-#### Cursor
-
-Add to your Cursor MCP settings (`.cursor/mcp.json`):
+VS Code (`.vscode/mcp.json`) uses `servers` instead of `mcpServers`:
 
 ```json
 {
-  "mcpServers": {
+  "servers": {
     "scrapebadger": {
+      "type": "stdio",
       "command": "uvx",
       "args": ["scrapebadger-mcp"],
       "env": {
@@ -97,16 +138,30 @@ Add to your Cursor MCP settings (`.cursor/mcp.json`):
 }
 ```
 
-#### Windsurf
+Claude Code:
 
-Add to your Windsurf MCP configuration:
+```bash
+claude mcp add scrapebadger -e SCRAPEBADGER_API_KEY=sb_live_your_api_key_here -- uvx scrapebadger-mcp
+```
+
+### Docker
+
+The [`Dockerfile`](Dockerfile) builds the server from this repository's source. Pass the API
+key when you run the container; the image never contains it.
+
+```bash
+docker build -t scrapebadger-mcp .
+docker run -i --rm -e SCRAPEBADGER_API_KEY=sb_live_your_api_key_here scrapebadger-mcp
+```
+
+`-i` keeps stdin open, which the stdio transport needs. To use the image from an MCP client:
 
 ```json
 {
   "mcpServers": {
     "scrapebadger": {
-      "command": "uvx",
-      "args": ["scrapebadger-mcp"],
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "-e", "SCRAPEBADGER_API_KEY", "scrapebadger-mcp"],
       "env": {
         "SCRAPEBADGER_API_KEY": "sb_live_your_api_key_here"
       }
@@ -115,147 +170,129 @@ Add to your Windsurf MCP configuration:
 }
 ```
 
-#### VS Code with Copilot
+### Try it
 
-Add to your VS Code settings (`.vscode/mcp.json`):
-
-```json
-{
-  "mcpServers": {
-    "scrapebadger": {
-      "command": "uvx",
-      "args": ["scrapebadger-mcp"],
-      "env": {
-        "SCRAPEBADGER_API_KEY": "sb_live_your_api_key_here"
-      }
-    }
-  }
-}
-```
-
-### 4. Start Using It!
-
-Once configured, simply ask your AI to fetch Twitter data:
-
-> "Get the profile of @elonmusk"
-
-> "Search for tweets about AI agents"
-
-> "What's trending on Twitter right now?"
-
-> "Find the top 10 Python developers on Twitter"
+> "Get the profile and recent tweets of @sama"
 
 > "Search Google for 'are noise cancelling headphones worth it' and answer the People Also Ask questions"
 
 > "Ask Google AI Mode for the best coffee near me, as if I were in Wonju, South Korea"
 
+> "Ask Grok what people on X say about the new iPhone, with sources"
+
+> "Find pizza places in Toronto on Yelp, sorted by rating"
+
+> "Show me used road bikes on Facebook Marketplace within 20 km of London, listed in the last two days"
+
 ---
 
-## Available Tools
+## Available tools
 
-The MCP server provides 17 tools organized into categories:
+The local server has 31 tools. It lists a tool only while ScrapeBadger's live endpoint catalog
+lists its endpoint, and marks a deprecated or temporarily unavailable endpoint in the tool
+description. A call to a restricted endpoint returns the API's error and is not billed.
 
-### User Tools
-
-| Tool | Description |
-|------|-------------|
-| `get_twitter_user_profile` | Get a user's profile by username (bio, followers, following, etc.) |
-| `get_twitter_user_about` | Get extended "About" info (account location, username history) |
-| `search_twitter_users` | Search for users by query |
-| `get_twitter_followers` | Get a user's followers |
-| `get_twitter_following` | Get accounts a user follows |
-
-### Tweet Tools
+### Twitter/X
 
 | Tool | Description |
 |------|-------------|
-| `get_twitter_tweet` | Get a single tweet by ID |
-| `get_twitter_user_tweets` | Get recent tweets from a user |
-| `search_twitter_tweets` | Search for tweets (supports Twitter search operators) |
+| `get_twitter_user_profile` | A user's profile by username: bio, followers, following, verification |
+| `get_twitter_user_about` | Extended "About" info: account location, username history, verification details |
+| `search_twitter_users` | Search users by query |
+| `get_twitter_followers` | A user's followers |
+| `get_twitter_following` | Accounts a user follows |
+| `get_twitter_tweet` | A single tweet by ID: text, author, metrics, media, polls, quoted tweet |
+| `get_twitter_user_tweets` | A user's recent tweets |
+| `search_twitter_tweets` | Search tweets, with Twitter's advanced search operators |
+| `get_twitter_trends` | Trending topics, optionally by category (news, sports, entertainment) |
+| `get_twitter_place_trends` | Trends for a location by WOEID |
+| `search_twitter_places` | Search Twitter places by name |
+| `get_twitter_list_detail` | A list's name, description, member and subscriber counts, owner |
+| `search_twitter_lists` | Search lists |
+| `get_twitter_list_tweets` | Recent tweets from a list's members |
+| `get_twitter_community_detail` | A community's name, description, member count, rules and admins |
+| `search_twitter_communities` | Search communities |
 
-### Trend Tools
-
-| Tool | Description |
-|------|-------------|
-| `get_twitter_trends` | Get global trending topics (optionally by category) |
-| `get_twitter_place_trends` | Get trends for a specific location (by WOEID) |
-
-### Geo Tools
-
-| Tool | Description |
-|------|-------------|
-| `search_twitter_places` | Search for Twitter places by name |
-
-### List Tools
-
-| Tool | Description |
-|------|-------------|
-| `get_twitter_list_detail` | Get details about a Twitter list |
-| `search_twitter_lists` | Search for Twitter lists |
-| `get_twitter_list_tweets` | Get tweets from a list |
-
-### Community Tools
+### Google
 
 | Tool | Description |
 |------|-------------|
-| `get_twitter_community_detail` | Get details about a Twitter community |
-| `search_twitter_communities` | Search for communities |
-
-### Google Tools
-
-| Tool | Description |
-|------|-------------|
-| `search_google` | Search Google (`/v1/google/search`): organic results, ads, knowledge graph, AI Overview, People Also Ask, shopping results, perspectives, discussions and forums, short videos, related searches |
+| `search_google` | Google web search (`/v1/google/search`): organic results, ads, knowledge graph, AI Overview, People Also Ask, shopping results, perspectives, discussions and forums, short videos, related searches |
 | `google_ai_mode_search` | Google AI Mode (`/v1/google/ai-mode/search`): the generative answer as `markdown` and `text_blocks` with its cited `references`, optionally localised with `location`, `lat` + `lon` or `uule` |
 | `google_resolve_links` | Real URLs for Google results (`POST /v1/google/resolve`): send the `search_google` organic results that carry a `link_token`, 1 to 25 per call, and get each row back resolved, not ready or failed. No credits |
 
 `search_google` takes `q`, `gl`, `hl`, `start`, `location`, `ai_overview` and
-`expand_related_questions`. Google loads a People Also Ask answer only when the
-question is clicked, so by default `related_questions` holds the questions
-without answers. `expand_related_questions: true` opens every question the page
-shows (usually four) and a number `N` opens the first N; each answered question
-then carries `text_blocks` and `references`. Each answered question costs one
-more search (credits = 20 x (1 + answered)), and a question whose answer does
-not come back is not billed. See the
-[Google web search docs](https://docs.scrapebadger.com/api-reference/google/google-search/google-web-search).
+`expand_related_questions`, plus Google's own request parameters. Google loads a People Also
+Ask answer only when the question is clicked, so by default `related_questions` holds the
+questions without answers. `expand_related_questions: true` opens every question the page
+shows (usually four) and a number `N` opens the first N; each answered question then carries
+`text_blocks` and `references`. Each answered question costs one more search
+(credits = 20 x (1 + answered)), and a question whose answer does not come back is not billed.
+See the [Google web search docs](https://docs.scrapebadger.com/api-reference/google/google-search/google-web-search).
 
-Google can return a result's `link` as a redirect
-(`https://www.google.com/goto?url=...`) and paces how fast the links of one
-result page can be followed. Such an organic result carries `link_token` and
-`retry_after_seconds` (0 = can be resolved right away); both are null when
+Google can return a result's `link` as a redirect (`https://www.google.com/goto?url=...`) and
+paces how fast the links of one result page can be followed. Such an organic result carries
+`link_token` and `retry_after_seconds` (0 = can be resolved right away); both are null when
 `link` is already the real URL. Pass the results that carry a `link_token` to
-`google_resolve_links`, 1 to 25 per call. Other fields are returned unchanged
-and the rows come back in the order sent, each as one of:
+`google_resolve_links`, 1 to 25 per call. Other fields are returned unchanged and the rows come
+back in the order sent, each as one of:
 
 - resolved: `link` is the result's own URL and the row has no `link_token`.
-- not ready: the row has `link_token` and `retry_after_seconds` (1 or more).
-  Wait that many seconds, then send the row again with its latest `link_token`,
-  which can differ from the one sent.
+- not ready: the row has `link_token` and `retry_after_seconds` (1 or more). Wait that many
+  seconds, then send the row again with its latest `link_token`, which can differ from the one
+  sent.
 - failed: the row has `link_token` and `error`. Do not send it again.
 
-A token sent early is not an error: the row comes back not ready with the wait
-that is left. The response's own `retry_after_seconds` is the shortest wait
-among the not-ready rows, or null when no row is waiting. One call makes one
-request and does not wait. Polling this way, all ten links of a page are usually
-known 45 to 70 seconds after the search; once the result page is about 160
-seconds old, one call returns every remaining link. The tool costs no credits
-and needs `scrapebadger` SDK 0.82.0 or later.
+A token sent early is not an error: the row comes back not ready with the wait that is left.
+The response's own `retry_after_seconds` is the shortest wait among the not-ready rows, or
+null when no row is waiting. One call makes one request and does not wait. Polling this way,
+all ten links of a page are usually known 45 to 70 seconds after the search; once the result
+page is about 160 seconds old, one call returns every remaining link.
 
-`google_ai_mode_search` takes `q`, `gl`, `hl`, `include_html` (default `false`
-here: `markdown` and `text_blocks` carry the whole answer) and one of `location`,
-`uule`, or `lat` + `lon`. A location answers "near me" and other local questions
-as if the user were in that place, down to the city or district, whatever the
-exit IP: `location` is a Google canonical name such as
-`Wonju-si,Gangwon-do,South Korea`, a criteria ID such as `1009889`, or an
-unambiguous short name. With `location` and no `gl`, `gl` becomes the location's
-country; `gl` itself is Google's market and does not choose the exit country.
-Located answers echo a `location` object. Unknown or ambiguous names are
-rejected with canonical candidates, and a located request that cannot be
-answered right now fails unbilled; retry it. Location targeting needs
-`scrapebadger` SDK 0.77.0 or later. See the
+`google_ai_mode_search` takes `q`, `gl`, `hl`, `include_html` (default `false` here:
+`markdown` and `text_blocks` carry the whole answer) and one of `location`, `uule`, or
+`lat` + `lon`. A location answers "near me" and other local questions as if the user were in
+that place, down to the city or district, whatever the exit IP: `location` is a Google
+canonical name such as `Wonju-si,Gangwon-do,South Korea`, a criteria ID such as `1009889`, or
+an unambiguous short name. With `location` and no `gl`, `gl` becomes the location's country;
+`gl` itself is Google's market and does not choose the exit country. Located answers echo a
+`location` object. Unknown or ambiguous names are rejected with canonical candidates, and a
+located request that cannot be answered right now fails unbilled; retry it. See the
 [Google AI Mode docs](https://docs.scrapebadger.com/api-reference/google/google-ai-mode/google-ai-mode-search).
 
-### Yelp, GitHub repository and AutoScout24 listing tools
+### LinkedIn
+
+| Tool | Description |
+|------|-------------|
+| `linkedin_get_profile` | A public LinkedIn profile by vanity id (`public_id`): roles, education, public profile sections, recent posts and articles when LinkedIn shows them |
+| `linkedin_get_full_profile` | The full profile with paginated positions and richer sections |
+
+Both take `public_id` (the part after `linkedin.com/in/`) and an optional `country`
+(default `us`). See the [LinkedIn docs](https://docs.scrapebadger.com/linkedin/overview).
+
+### Grok
+
+| Tool | Description |
+|------|-------------|
+| `grok_ask` | Ask the real Grok assistant: the answer with web citations, X post references, tool usage and follow-up suggestions. Pass an earlier `conversation_id` to continue a conversation; `mode` is `auto`, `fast` or `expert`, `web_search` is `auto`, `force` or `off`. 20 credits |
+| `grok_brand_visibility` | Measure a brand in a real Grok answer: mentions, share of voice, position, competitor breakdown and citation rank, with the full answer and sources. 25 credits |
+| `grok_get_conversation` | The messages of an existing Grok conversation, oldest first, with timestamps. 3 credits |
+| `grok_list_models` | Grok's assistant modes (`auto`, `fast`, `expert`). 1 credit |
+
+See the [Grok docs](https://docs.scrapebadger.com/grok/overview).
+
+### Facebook Marketplace
+
+| Tool | Description |
+|------|-------------|
+| `facebook_marketplace_search` | Search public Marketplace listings without a Facebook account. Verified filters enforce radius in kilometres and listing age; `include_details=true` adds full descriptions and photo URLs |
+| `facebook_marketplace_item` | One public listing: description, photo URLs, seller and approximate coordinates |
+
+Follow the opaque `end_cursor`, including after empty filtered pages. Coverage is partial and
+newest-first order applies within each page. See the
+[Facebook docs](https://docs.scrapebadger.com/facebook/overview).
+
+### Yelp, GitHub and AutoScout24
 
 | Tool | Description |
 |------|-------------|
@@ -264,174 +301,69 @@ answered right now fails unbilled; retry it. Location targeting needs
 | `github_get_repository` | A public repository on its default branch (`/v1/github/repositories/{owner}/{repo}`): statistics, topics, license, native README, root files and latest commit. Pass `owner` and `repo` separately, not a URL. 10 credits |
 | `autoscout24_get_listing` | Full AutoScout24 listing detail (`/v1/autoscout24/listing`): native specifications, equipment, photos, prices and public seller data. Pass exactly one `url` or `listing_id` from a vehicle search; `market` is inferred from the URL, otherwise `de`. 10 credits; removed listings are unbilled 404s |
 
-These tools return the API response unchanged, so every native field stays available.
-See the [Yelp](https://docs.scrapebadger.com/yelp/overview),
+These tools return the API response unchanged, so every native field stays available. See the
+[Yelp](https://docs.scrapebadger.com/yelp/overview),
 [GitHub](https://docs.scrapebadger.com/github/repositories) and
 [AutoScout24](https://docs.scrapebadger.com/api-reference/endpoint/autoscout24/listing) docs.
 
-The server lists a tool only while ScrapeBadger's live endpoint catalog lists its endpoint,
-and marks a deprecated or temporarily unavailable endpoint in the tool description. A call to
-a restricted endpoint returns the API's error and is not billed.
+For any other ScrapeBadger API (Amazon, Instagram, YouTube, TikTok, Reddit, ChatGPT,
+Perplexity, the Web Scraping API and the rest), use the [hosted server](#hosted-server-recommended).
 
 ---
 
-## Example Conversations
-
-### Research a Twitter Account
-
-**You:** Get the profile and recent tweets from @sama
-
-**Claude:** I'll fetch Sam Altman's Twitter profile and recent tweets.
-
-*Uses `get_twitter_user_profile` and `get_twitter_user_tweets`*
-
-```
-Sam Altman (@sama)
-- 3.2M followers, 1,847 following
-- Bio: "ceo of openai"
-- Joined: December 2008
-
-Recent tweets:
-1. "excited to share..." (245K likes)
-2. "the future of ai..." (180K likes)
-...
-```
-
-### Monitor Trending Topics
-
-**You:** What's trending in tech on Twitter today?
-
-**Claude:** I'll check the current trending topics.
-
-*Uses `get_twitter_trends` with category="news"*
-
-```
-Top Tech Trends:
-1. #GPT5 - 125,000 tweets
-2. Apple Vision Pro - 89,000 tweets
-3. #AGI - 45,000 tweets
-...
-```
-
-### Competitive Analysis
-
-**You:** Compare the Twitter engagement of Stripe, Square, and PayPal
-
-**Claude:** I'll gather data on all three companies' Twitter profiles.
-
-*Uses `get_twitter_user_profile` for each company*
-
-```
-| Company | Followers | Following | Engagement Rate |
-|---------|-----------|-----------|-----------------|
-| Stripe  | 892K      | 1,245     | 2.3%           |
-| Square  | 1.2M      | 567       | 1.8%           |
-| PayPal  | 2.1M      | 234       | 0.9%           |
-```
-
----
-
-## Configuration Options
-
-### Environment Variables
+## Configuration
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `SCRAPEBADGER_API_KEY` | Yes | Your ScrapeBadger API key |
+| `SCRAPEBADGER_API_KEY` | For tool calls | Your ScrapeBadger API key, from the [dashboard](https://scrapebadger.com/dashboard/api-keys) |
 
-### Using with Docker
+The server starts and lists its tools without a key, so MCP clients and directories can
+inspect it. Until the key is set, every tool call returns an error (`MissingApiKeyError`) that
+says how to set it.
 
-```dockerfile
-FROM python:3.12-slim
-
-RUN pip install scrapebadger-mcp
-
-ENV SCRAPEBADGER_API_KEY=your_key_here
-
-CMD ["scrapebadger-mcp"]
-```
-
-### Using with Python Directly
+To run from a checkout without installing:
 
 ```bash
-# Set your API key
 export SCRAPEBADGER_API_KEY="sb_live_your_key_here"
-
-# Run the server
-python -m scrapebadger_mcp.server
+uv run scrapebadger-mcp
 ```
 
 ---
 
-## Error Handling
+## Error handling
 
-The MCP server handles common errors gracefully:
+Tool errors come back as MCP tool errors with an `error` message and an `error_type`:
 
-| Error | Description | Solution |
-|-------|-------------|----------|
+| Error | Meaning | What to do |
+|-------|---------|------------|
+| `MissingApiKeyError` | `SCRAPEBADGER_API_KEY` is not set | Set it in the server's environment and restart the server |
 | `AuthenticationError` | Invalid API key | Check your `SCRAPEBADGER_API_KEY` |
 | `RateLimitError` | Too many requests | Wait and retry, or upgrade your plan |
-| `InsufficientCreditsError` | Out of credits | Purchase more at scrapebadger.com |
-| `NotFoundError` | User/tweet not found | Verify the username or tweet ID |
+| `InsufficientCreditsError` | Out of credits | Buy more at [scrapebadger.com](https://scrapebadger.com) |
+| `NotFoundError` | User, tweet or listing not found | Check the username, ID or URL |
 
 ---
 
 ## Development
 
-### Setup
-
 ```bash
-# Clone the repository
 git clone https://github.com/scrape-badger/scrapebadger-mcp.git
 cd scrapebadger-mcp
+uv sync --extra dev
 
-# Install dependencies
-uv sync --dev
-
-# Set your API key
-export SCRAPEBADGER_API_KEY="sb_live_your_key_here"
-```
-
-### Running Locally
-
-```bash
-# Run the MCP server directly
-uv run python -m scrapebadger_mcp.server
-
-# Or use the CLI
-uv run scrapebadger-mcp
-```
-
-### Testing
-
-```bash
-# Run tests
-uv run pytest
-
-# Run with coverage
-uv run pytest --cov=src/scrapebadger_mcp
-```
-
-### Code Quality
-
-```bash
-# Lint
-uv run ruff check src/
-
-# Format
-uv run ruff format src/
-
-# Type check
-uv run mypy src/
+uv run pytest                      # tests
+uv run ruff check src/ tests/      # lint
+uv run ruff format src/ tests/     # format
+uv run mypy src/                   # type check
 ```
 
 ---
 
 ## Troubleshooting
 
-### "SCRAPEBADGER_API_KEY environment variable is required"
+### "SCRAPEBADGER_API_KEY is not set"
 
-Make sure you've set the API key in your MCP configuration:
+Add the key to the server entry in your MCP client config and restart the client:
 
 ```json
 {
@@ -441,11 +373,13 @@ Make sure you've set the API key in your MCP configuration:
 }
 ```
 
+With Docker, pass `-e SCRAPEBADGER_API_KEY=...` to `docker run`.
+
 ### Server not showing in Claude Desktop
 
-1. Restart Claude Desktop after changing the config
-2. Check the config file path is correct for your OS
-3. Verify JSON syntax is valid (no trailing commas)
+1. Restart Claude Desktop after changing the config.
+2. Check that the config file path is right for your OS.
+3. Check that the JSON is valid (no trailing commas).
 
 ### "uvx: command not found"
 
@@ -461,21 +395,16 @@ powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
 
 ### Rate limit errors
 
-ScrapeBadger has usage limits based on your plan. If you're hitting limits:
-
-1. Reduce request frequency
-2. Use pagination with smaller `max_results`
-3. Upgrade your plan at [scrapebadger.com](https://scrapebadger.com)
+ScrapeBadger has usage limits based on your plan. If you hit them, send fewer requests, use
+smaller `max_results`, or upgrade your plan at [scrapebadger.com](https://scrapebadger.com).
 
 ---
 
-## Related Projects
+## Related projects
 
-- [ScrapeBadger Python SDK](https://github.com/scrape-badger/scrapebadger-python) - Official Python SDK
-- [ScrapeBadger Node.js SDK](https://github.com/scrape-badger/scrapebadger-node) - Official Node.js SDK
-- [ScrapeBadger API Docs](https://docs.scrapebadger.com) - Full API documentation
-
----
+- [ScrapeBadger Python SDK](https://github.com/scrape-badger/scrapebadger-python)
+- [ScrapeBadger Node.js SDK](https://github.com/scrape-badger/scrapebadger-node)
+- [ScrapeBadger API docs](https://docs.scrapebadger.com)
 
 ## Support
 
@@ -484,22 +413,12 @@ ScrapeBadger has usage limits based on your plan. If you're hitting limits:
 - **Email:** support@scrapebadger.com
 - **Discord:** [Join our community](https://discord.gg/scrapebadger)
 
----
-
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT License. See [LICENSE](LICENSE).
 
 ---
 
 <p align="center">
   Made with love by <a href="https://scrapebadger.com">ScrapeBadger</a>
 </p>
-
-### Public Facebook Marketplace
-
-`facebook_marketplace_search` reads public listings without a Facebook account.
-Verified filters enforce radius in kilometres and age. Set `include_details=true`
-for full public descriptions and photo URLs. Follow the opaque `end_cursor`,
-including after empty filtered pages; coverage is partial and newest-first order
-applies within each page. `facebook_marketplace_item` reads one listing.

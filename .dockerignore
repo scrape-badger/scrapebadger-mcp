@@ -1,0 +1,24 @@
+# Only pyproject.toml, uv.lock, README.md, LICENSE and src/ go into the image.
+.git
+.github
+.venv
+venv
+.env
+.envrc
+*.local
+**/__pycache__
+**/*.py[cod]
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.coverage
+htmlcov
+build
+dist
+*.egg-info
+tests
+Dockerfile
+.dockerignore
+REGISTRY_SUBMISSION.md
+CHANGELOG.md
+.DS_Store

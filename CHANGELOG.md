@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.1] - 2026-11-24
+
+- The server starts and lists its tools without `SCRAPEBADGER_API_KEY`, so MCP clients and directories can inspect it before a key is set. Without a key the tool list does not read the live endpoint catalog, and every tool call returns an MCP error (`MissingApiKeyError`) that says how to set the key. Before, the server exited with code 1 at startup.
+- New `Dockerfile` that builds the server from this repository's source with the locked dependencies (`uv.lock`) and runs it over stdio as a non-root user. The API key is passed at run time (`docker run -i --rm -e SCRAPEBADGER_API_KEY=... scrapebadger-mcp`) and is not stored in the image. CI builds the image and lists its tools without a key.
+- README: leads with the hosted server at `https://mcp.scrapebadger.com/mcp` (OAuth or API key, every ScrapeBadger API), then the local install and Docker. The tool list now covers all 31 tools, including LinkedIn and Grok.
+- `server.json` and package metadata describe every product the package covers. `uv.lock` matches `pyproject.toml` again (it still locked `scrapebadger` 0.78.0). (SCR-653)
+
 ## [0.10.0] - 2026-11-23
 
 - New `google_resolve_links` tool (`POST /v1/google/resolve`, no credits): get the real URLs of `search_google` organic results whose `link` is a `google.com/goto` redirect. Send the results that carry a `link_token`, 1 to 25 per call; other fields are returned unchanged. Each row comes back resolved (`link` is the result's own URL; no `link_token`), not ready (`link_token` and `retry_after_seconds` of 1 or more: wait that long, then send the row's latest `link_token` again) or failed (`link_token` and `error`: do not send it again). One call makes one request and does not wait.
