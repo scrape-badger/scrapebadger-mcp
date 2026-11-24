@@ -74,3 +74,29 @@ jobs:
         with:
           name: dist
           path: dist/
+
+  docker:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t scrapebadger-mcp:ci .
+
+      # What an MCP directory does: start the image with no key and no network, list the
+      # tools over stdio, and call one (which must return the missing-key error).
+      - name: List tools over stdio without an API key
+        run: |
+          set -euo pipefail
+          {
+            echo '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"ci","version":"0"}}}'
+            echo '{"jsonrpc":"2.0","method":"notifications/initialized"}'
+            echo '{"jsonrpc":"2.0","id":2,"method":"tools/list"}'
+            echo '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"grok_list_models","arguments":{}}}'
+            sleep 5
+          } | timeout 60 docker run -i --rm --network none scrapebadger-mcp:ci > out.jsonl
+          jq -c 'select(.id == 2) | [.result.tools[].name]' out.jsonl
+          jq -e 'select(.id == 2) | (.result.tools | length) > 0' out.jsonl
+          jq -e 'select(.id == 3) | .result.isError and
+            (.result.content[0].text | contains("SCRAPEBADGER_API_KEY is not set"))' out.jsonl

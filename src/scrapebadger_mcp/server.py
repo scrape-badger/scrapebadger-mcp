@@ -1,8 +1,12 @@
 """ScrapeBadger MCP Server.
 
 This module implements the Model Context Protocol (MCP) server for ScrapeBadger,
-providing AI agents with access to Twitter/X scraping, Google Search and AI Mode, AutoScout24
-listing detail, GitHub repository detail and Yelp business search.
+providing AI agents with Twitter/X, Google Search and AI Mode, LinkedIn profiles, Grok
+answers, public Facebook Marketplace, Yelp business search, GitHub repository detail and
+AutoScout24 listing detail.
+
+The server starts and lists its tools without an API key, so a client or an MCP directory
+can inspect it; each tool call then needs ``SCRAPEBADGER_API_KEY``.
 """
 
 from __future__ import annotations
@@ -63,14 +67,26 @@ server = Server("scrapebadger")
 _client: ScrapeBadger | None = None
 
 
+MISSING_API_KEY_MESSAGE = (
+    "SCRAPEBADGER_API_KEY is not set, so this tool cannot run. Create an API key at "
+    "https://scrapebadger.com/dashboard/api-keys, set SCRAPEBADGER_API_KEY in this server's "
+    "environment and restart the server. In an MCP client config, add "
+    '"env": {"SCRAPEBADGER_API_KEY": "<your key>"} to the server entry; with Docker, run '
+    "docker run -i --rm -e SCRAPEBADGER_API_KEY=<your key> scrapebadger-mcp. "
+    "The hosted server at https://mcp.scrapebadger.com/mcp signs in with OAuth instead."
+)
+
+
+def _api_key() -> str | None:
+    """The API key from the environment, or None when it is unset or blank."""
+    return os.environ.get("SCRAPEBADGER_API_KEY", "").strip() or None
+
+
 def _get_api_key() -> str:
     """Get API key from environment."""
-    api_key = os.environ.get("SCRAPEBADGER_API_KEY")
-    if not api_key:
-        raise ValueError(
-            "SCRAPEBADGER_API_KEY environment variable is required. "
-            "Get your API key at https://scrapebadger.com"
-        )
+    api_key = _api_key()
+    if api_key is None:
+        raise ValueError(MISSING_API_KEY_MESSAGE)
     return api_key
 
 
@@ -844,6 +860,11 @@ async def list_tools() -> list[Tool]:
         ),
     ]
 
+    if _api_key() is None:
+        # Without a key, list every tool and skip the live catalog, so a client or an MCP
+        # directory can inspect the server before a key is set. Calls return the key error.
+        return tools
+
     import re
 
     entries = await (await _get_client()).endpoints()
@@ -874,6 +895,23 @@ async def list_tools() -> list[Tool]:
 @server.call_tool()  # type: ignore[untyped-decorator]
 async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent] | CallToolResult:
     """Handle tool calls."""
+    if name not in TOOL_PATHS:
+        return [
+            TextContent(type="text", text=json.dumps({"error": f"Unknown tool: {name}"}, indent=2))
+        ]
+    if _api_key() is None:
+        return CallToolResult(
+            isError=True,
+            content=[
+                TextContent(
+                    type="text",
+                    text=json.dumps(
+                        {"error": MISSING_API_KEY_MESSAGE, "error_type": "MissingApiKeyError"},
+                        indent=2,
+                    ),
+                )
+            ],
+        )
     try:
         client = await _get_client()
         result: Any = None
@@ -1150,13 +1188,17 @@ async def serve() -> None:
 
 
 def main() -> None:
-    """Main entry point."""
-    try:
-        # Verify API key is set before starting
-        _get_api_key()
-    except ValueError as e:
-        print(f"Error: {e}", file=sys.stderr)
-        sys.exit(1)
+    """Main entry point.
+
+    The server starts without an API key so that its tools can be listed; tool calls then
+    return an error that says how to set SCRAPEBADGER_API_KEY.
+    """
+    if _api_key() is None:
+        print(
+            "scrapebadger-mcp: SCRAPEBADGER_API_KEY is not set. Tools are listed, but every "
+            "tool call returns an error until the key is set.",
+            file=sys.stderr,
+        )
 
     asyncio.run(serve())
 

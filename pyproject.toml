@@ -1,7 +1,7 @@
 [project]
 name = "scrapebadger-mcp"
-version = "0.10.0"
-description = "MCP server for ScrapeBadger - Twitter/X, Google Search, Yelp, GitHub repositories and AutoScout24 listings for AI agents"
+version = "0.10.1"
+description = "MCP server for ScrapeBadger - Twitter/X, Google Search and AI Mode, LinkedIn, Grok, Facebook Marketplace, Yelp, GitHub and AutoScout24 for AI agents"
 readme = "README.md"
 license = { text = "MIT" }
 authors = [{ name = "ScrapeBadger", email = "support@scrapebadger.com" }]
@@ -16,8 +16,13 @@ keywords = [
     "yelp",
     "github",
     "autoscout24",
+    "linkedin",
+    "grok",
+    "facebook-marketplace",
     "x",
     "scraping",
+    "web-scraping",
+    "ai-agents",
     "api",
     "claude",
     "chatgpt",
