@@ -255,6 +255,13 @@ class SearchGoogleArgs(BaseModel):
     filter: int | None = Field(default=None, description="Omitted-results filter: 0 or 1.")
     nfpr: int | None = Field(default=None, description="Disable spelling correction.")
     output: str | None = Field(default=None, description="json or html.")
+    defer_links: bool | None = Field(
+        default=None,
+        description=(
+            "Skip inline URL lookups for faster JSON; "
+            "redeem organic link_tokens with google_resolve_links."
+        ),
+    )
     device: str | None = Field(default=None, description="Device target.")
     user_agent: str | None = Field(default=None, description="Custom User-Agent.")
     cr: str | None = Field(default=None, description="Country restrict.")
