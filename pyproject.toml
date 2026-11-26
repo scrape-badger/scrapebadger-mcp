@@ -1,6 +1,6 @@
 [project]
 name = "scrapebadger-mcp"
-version = "0.10.1"
+version = "0.11.0"
 description = "MCP server for ScrapeBadger - Twitter/X, Google Search and AI Mode, LinkedIn, Grok, Facebook Marketplace, Yelp, GitHub and AutoScout24 for AI agents"
 readme = "README.md"
 license = { text = "MIT" }
@@ -45,7 +45,7 @@ classifiers = [
 requires-python = ">=3.10"
 dependencies = [
     "mcp>=1.0.0,<2",
-    "scrapebadger>=0.82.0",
+    "scrapebadger>=0.84.0",
     "pydantic>=2.0.0",
 ]
 
